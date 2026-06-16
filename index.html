@@ -60,7 +60,6 @@
         .qr-wrapper { display: flex; justify-content: center; align-items: center; width: 100%; margin: 15px 0; }
         .qr-wrapper img, .qr-wrapper canvas { margin: 0 auto; display: block; }
 
-        /* PERBAIKAN DESAIN CETAKAN THERMAL (KOTAK HILANG, SPASI RAPI) */
         @media print {
             @page { size: portrait; margin: 0; }
             body * { visibility: hidden; }
@@ -74,12 +73,12 @@
                 padding: 10px 5px; 
                 text-align: center; 
                 color: #000; 
-                border: none; /* Kotak luar putus-putus dihilangkan */
+                border: none;
                 font-family: Arial, sans-serif;
             }
             .struk-card * { 
                 line-height: 1.5; 
-                letter-spacing: 0.5px; /* Mencegah huruf saling nempel */
+                letter-spacing: 0.5px;
             }
             .struk-card h4 { letter-spacing: 1px; }
             .struk-card h1 { letter-spacing: 3px; }
@@ -176,15 +175,15 @@
                     <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-laporan">Laporan</button></li>
                     <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-setting"><i class="fa-solid fa-gear"></i></button></li>
                 </ul>
-                <div class="tab-content p-0" id="pills-tabContent">
-                    <div class="tab-pane fade show active" id="tab-rekap">
+                <div class="tab-content p-0" id="pills-tabContent" style="overflow-y:auto; display:block;">
+                    <div class="tab-pane fade show active" id="tab-rekap" style="display:block!important;">
                         <div class="alert alert-info p-2 mb-3 text-center fw-bold text-uppercase">Statistik Hari Ini</div>
                         <div class="d-flex justify-content-between border-bottom pb-2 mb-2"><span>Total Tamu:</span> <strong class="fs-5" id="rekapTotal">0</strong></div>
                         <div class="d-flex justify-content-between border-bottom pb-2 mb-2"><span>Selesai:</span> <strong class="text-success fs-5" id="rekapSelesai">0</strong></div>
                         <div class="d-flex justify-content-between mb-4"><span>Belum Diproses:</span> <strong class="text-danger fs-5" id="rekapSisa">0</strong></div>
                         <button class="btn btn-success w-100 fw-bold" onclick="downloadExcelHariIni()"><i class="fa-solid fa-file-excel"></i> Download Excel Harian</button>
                     </div>
-                    <div class="tab-pane fade" id="tab-laporan">
+                    <div class="tab-pane fade" id="tab-laporan" style="display:none;">
                         <p class="text-muted small mb-2">Periode laporan SLA pelayanan:</p>
                         <div class="row g-2 mb-2">
                             <div class="col"><input type="date" class="form-control form-control-sm" id="tglMulai"></div>
@@ -194,7 +193,7 @@
                         <hr>
                         <button class="btn btn-outline-primary btn-sm w-100 fw-bold" onclick="muatLaporanRentang()"><i class="fa-solid fa-chart-pie"></i> Lihat Grafik Statistik</button>
                     </div>
-                    <div class="tab-pane fade" id="tab-setting">
+                    <div class="tab-pane fade" id="tab-setting" style="display:none;">
                         <label class="fw-bold small mb-1">Pengaturan Password Sistem</label>
                         <div class="position-relative mb-3">
                             <input type="password" id="settingPassword" class="form-control text-center fw-bold" value="Posk02026!">
@@ -339,6 +338,27 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('button[data-bs-toggle="pill"], button[data-bs-toggle="tab"]');
+            tabs.forEach(tab => {
+                tab.addEventListener('shown.bs.tab', (e) => {
+                    const targetId = e.target.getAttribute('data-bs-target');
+                    const targetPane = document.querySelector(targetId);
+                    if(targetPane) {
+                        targetPane.style.display = 'flex';
+                        if (targetId === '#live-panel' || targetId === '#arsip-panel') {
+                            targetPane.style.flexDirection = 'column';
+                        }
+                    }
+                    const parentContent = targetPane.closest('.tab-content');
+                    parentContent.querySelectorAll('.tab-pane').forEach(pane => {
+                        if(pane !== targetPane) pane.style.display = 'none';
+                    });
+                });
+            });
+        });
+    </script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
         import { getDatabase, ref, onValue, set, update, get } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js";
@@ -649,9 +669,9 @@
                 if(t.status === 2) badge = `<span class="badge bg-primary">Diproses</span>`;
                 if(t.status === 3) badge = `<span class="badge bg-success">Selesai</span>`;
 
-                // PERBAIKAN TOMBOL CETAK ARSIP: Penambahan 'window.' agar bisa diklik
+                // TOMBOL CETAK ADMIN & KIOS DI DATA TAMU SUDAH DITAMBAHKAN 'window.'
                 bodyTabel.innerHTML += `
-                    <tr class="baris-tamu" onclick="bukaModalDetailTamu('${id}')">
+                    <tr class="baris-tamu" onclick="window.bukaModalDetailTamu('${id}')">
                         <td class="fw-bold fs-5 text-center">${String(id).padStart(3, '0')}</td>
                         <td class="fw-bold">${t.nama}</td><td>${t.alamat}</td><td>${t.keperluan}</td>
                         <td class="text-center">
@@ -680,6 +700,13 @@
                 paginasi.innerHTML += `<button class="btn btn-sm btn-outline-primary fw-bold" onclick="gantiHalaman(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
             }
         }
+
+        window.bukaModalAksiLive = function(id) {
+            targetIdAksi = id; 
+            document.getElementById('liveNoTarget').innerText = String(id).padStart(3, '0');
+            const targetModal = document.getElementById('modalAksiLive');
+            bootstrap.Modal.getOrCreateInstance(targetModal).show();
+        };
 
         let isFirstLoadPanggilan = true;
         onValue(ref(db, 'sistem/panggilan_sekarang'), (snapshot) => {
@@ -771,14 +798,13 @@
             }
         });
 
-        let currentIdEdit = "";
         window.bukaModalDetailTamu = function(id) {
             currentIdEdit = id; const t = dataTamuHariIni[id];
             document.getElementById('detNo').innerText = String(id).padStart(3, '0');
             document.getElementById('detNama').innerText = t.nama; document.getElementById('detAlamat').innerText = t.alamat; document.getElementById('detKeperluan').innerText = t.keperluan; document.getElementById('detWA').innerText = t.wa;
             document.getElementById('detDatang').innerText = t.jam_datang; document.getElementById('detProses').innerText = t.jam_proses; document.getElementById('detSelesai').innerText = t.jam_selesai;
             document.getElementById('editNama').value = t.nama; document.getElementById('editAlamat').value = t.alamat; document.getElementById('editKeperluan').value = t.keperluan; document.getElementById('editWA').value = t.wa;
-            batalEditTamu(); bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetailTamu')).show();
+            window.batalEditTamu(); bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetailTamu')).show();
         };
 
         window.masukModeEdit = function() {
