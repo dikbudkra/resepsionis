@@ -61,20 +61,16 @@
         .qr-wrapper { display: flex; justify-content: center; align-items: center; width: 100%; margin: 15px 0; }
         .qr-wrapper img, .qr-wrapper canvas { margin: 0 auto; display: block; }
 
-        /* CSS PRINT DENGAN SAKELAR CERDAS ANTI-TUMPUK */
         @media print {
             @page { size: portrait; margin: 0; }
             body * { visibility: hidden; }
             
-            /* Sembunyikan default */
             #areaCetakStrukAdmin, #areaCetakMapAdmin { display: none !important; }
 
-            /* Tampilkan HANYA saat class mode Kios aktif */
             body.print-mode-kios #areaCetakStrukAdmin,
             body.print-mode-kios #areaCetakStrukAdmin * { visibility: visible; }
             body.print-mode-kios #areaCetakStrukAdmin { display: block !important; position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; }
 
-            /* Tampilkan HANYA saat class mode Map aktif */
             body.print-mode-map #areaCetakMapAdmin,
             body.print-mode-map #areaCetakMapAdmin * { visibility: visible; }
             body.print-mode-map #areaCetakMapAdmin { display: block !important; position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; }
@@ -86,7 +82,7 @@
                 color: #000; 
                 border: none;
                 font-family: Arial, sans-serif;
-                margin: 0 auto; /* Menjaga cetakan tetap persis di tengah kertas thermal */
+                margin: 0 auto; 
             }
             .struk-card * { line-height: 1.5; letter-spacing: 0.5px; }
             .struk-card h4 { letter-spacing: 1px; }
@@ -165,7 +161,7 @@
             <div class="card-custom">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold mb-0 text-primary"><i class="fa-solid fa-sliders"></i> Kendali Utama</h5>
-                    <button class="btn btn-sm btn-outline-danger fw-bold" onclick="prosesLogout(true, 'Mengunci sistem secara manual...')"><i class="fa-solid fa-power-off"></i> Keluar</button>
+                    <button class="btn btn-sm btn-outline-danger fw-bold" onclick="window.prosesLogout(true, 'Mengunci sistem secara manual...')"><i class="fa-solid fa-power-off"></i> Keluar</button>
                 </div>
                 <hr>
                 <div class="d-flex justify-content-between align-items-center mb-3">
@@ -280,8 +276,8 @@
                     <button class="btn btn-warning w-100 fw-bold py-3 mb-3 text-dark" style="font-size: 16px;" onclick="aksiPanggilLive()"><i class="fa-solid fa-bullhorn"></i> PANGGIL KE MEJA</button>
                     <button class="btn btn-primary w-100 fw-bold py-3 mb-4" style="font-size: 16px;" onclick="aksiProsesLive()"><i class="fa-solid fa-spinner"></i> PROSES BERKAS</button>
                     <hr class="border-secondary mb-3">
-                    <p class="text-danger small fw-bold mb-2"><i class="fa-solid fa-triangle-exclamation"></i> Selesai Tanpa Scan</p>
-                    <button class="btn btn-success w-100 fw-bold py-2" onclick="aksiSelesaiLive()"><i class="fa-solid fa-check-double"></i> SELESAI</button>
+                    <p class="text-danger small fw-bold mb-2"><i class="fa-solid fa-triangle-exclamation"></i> Selesai Manual</p>
+                    <button class="btn btn-success w-100 fw-bold py-2" onclick="window.aksiSelesaiLive()"><i class="fa-solid fa-check-double"></i> SELESAI</button>
                 </div>
             </div>
         </div>
@@ -389,13 +385,11 @@
         let currentPage = 1;
         let itemsPerPage = 10;
         
-        const BATAS_WAKTU_IDLE = 2 * 60 * 60 * 1000; 
-        let timeoutIdleAdmin;
+        const BATAS_WAKTU_IDLE = 2 * 60 * 60 * 1000; // 2 Jam
         let throttleAdmin;
 
         let suaraAktif = true; 
         let suaraIndonesia = null;
-        const belAntrian = new Audio('https://actions.google.com/sounds/v1/alarms/ding_dong.ogg');
         
         function muatDaftarSuara() {
             const voices = window.speechSynthesis.getVoices();
@@ -426,19 +420,24 @@
             }
         };
 
-        function resetWaktuIdleAdmin() {
-            clearTimeout(timeoutIdleAdmin);
+        // SISTEM IDLE BARU (TAHAN SLEEP/SHUTDOWN)
+        function periksaIdleAdmin() {
             if(localStorage.getItem('sesiResepsionis') === 'aktif') {
-                timeoutIdleAdmin = setTimeout(() => {
-                    window.prosesLogout(false, "Sesi dikunci karena tidak ada aktivitas (2 Jam).");
-                }, BATAS_WAKTU_IDLE);
+                let aktivitasTerakhir = localStorage.getItem('lastActivityAdmin');
+                if(!aktivitasTerakhir) aktivitasTerakhir = Date.now();
+                if(Date.now() - parseInt(aktivitasTerakhir) > BATAS_WAKTU_IDLE) {
+                    window.prosesLogout(false, "Sesi dikunci otomatis (Idle 2 Jam).");
+                }
             }
         }
+        setInterval(periksaIdleAdmin, 30000);
 
         function pelacakAktivitasAdmin() {
             if (!throttleAdmin) {
                 throttleAdmin = setTimeout(() => {
-                    resetWaktuIdleAdmin();
+                    if(localStorage.getItem('sesiResepsionis') === 'aktif') {
+                        localStorage.setItem('lastActivityAdmin', Date.now());
+                    }
                     throttleAdmin = null;
                 }, 1000);
             }
@@ -534,7 +533,6 @@
             btnBuka.className = statusBukaSekarang ? "btn btn-success btn-sm fw-bold" : "btn btn-danger btn-sm fw-bold";
         });
 
-        // KEMBALIKAN FUNGSI KLIK MANUAL STATUS KIOS
         window.toggleStatusBuka = function() {
             set(ref(db, 'sistem/pengaturan/status_buka'), !statusBukaSekarang);
         };
@@ -546,14 +544,10 @@
             set(ref(db, 'sistem/pengaturan/suara_aktif'), isChecked);
             
             if (isChecked) {
-                belAntrian.currentTime = 0; 
-                belAntrian.play().catch(e => console.log('Bel ditahan browser:', e));
-                setTimeout(() => {
-                    const s = new SpeechSynthesisUtterance("Sistem suara resepsionis telah aktif");
-                    s.lang = 'id-ID'; 
-                    if (suaraIndonesia) s.voice = suaraIndonesia; 
-                    window.speechSynthesis.speak(s);
-                }, 1500); 
+                const s = new SpeechSynthesisUtterance("Sistem suara resepsionis telah aktif");
+                s.lang = 'id-ID'; 
+                if (suaraIndonesia) s.voice = suaraIndonesia; 
+                window.speechSynthesis.speak(s);
             } else {
                 window.speechSynthesis.cancel(); 
             }
@@ -724,16 +718,11 @@
                 const data = snapshot.val();
                 
                 if (suaraAktif && (Date.now() - data.waktu < 15000)) {
-                    belAntrian.currentTime = 0; 
-                    belAntrian.play().catch(err => console.log('Gagal play bel:', err));
-                    
-                    setTimeout(() => {
-                        const pesan = new SpeechSynthesisUtterance(`Nomor antrian... ${data.nomor}... silakan menuju meja pelayanan.`);
-                        pesan.lang = 'id-ID';
-                        if (suaraIndonesia) pesan.voice = suaraIndonesia;
-                        pesan.rate = 0.85; 
-                        window.speechSynthesis.speak(pesan);
-                    }, 1500); 
+                    const pesan = new SpeechSynthesisUtterance(`Nomor antrian... ${data.nomor}... silakan menuju meja pelayanan.`);
+                    pesan.lang = 'id-ID';
+                    if (suaraIndonesia) pesan.voice = suaraIndonesia;
+                    pesan.rate = 0.85; 
+                    window.speechSynthesis.speak(pesan);
                 }
             }
         });
@@ -773,14 +762,42 @@
             });
         };
 
-        window.aksiSelesaiLive = function() {
-            get(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`)).then(snap => {
-                if(snap.exists()){
-                    const t = snap.val(), jp = t.jam_proses === "-" ? window.getJamMenitDetik() : t.jam_proses;
-                    update(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`), { status: 3, jam_proses: jp, jam_selesai: window.getJamMenitDetik() });
+        // FUNGSI HELPER POP-UP KONFIRMASI SELESAI
+        window.konfirmasiSelesai = function(idTarget, isManual) {
+            if (isManual) {
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAksiLive')).hide();
+            }
+            Swal.fire({
+                html: `
+                    <div class="text-center">
+                        <h5 class="fw-bold text-secondary mb-1">ANTRIAN</h5>
+                        <h1 class="display-1 fw-bold text-dark my-2">${String(idTarget).padStart(3, '0')}</h1>
+                        <h5 class="fw-bold text-success mt-1">Telah Selesai?</h5>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'OK',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#198754',
+                cancelButtonColor: '#6c757d',
+                customClass: {
+                    popup: 'rounded-4'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    get(ref(db, `data_tamu/${getTglSistem()}/${idTarget}`)).then(snap => {
+                        if(snap.exists()){
+                            const t = snap.val(), jp = t.jam_proses === "-" ? window.getJamMenitDetik() : t.jam_proses;
+                            update(ref(db, `data_tamu/${getTglSistem()}/${idTarget}`), { status: 3, jam_proses: jp, jam_selesai: window.getJamMenitDetik() });
+                            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Antrian ${String(idTarget).padStart(3,'0')} Selesai!`, showConfirmButton: false, timer: 3000 });
+                        }
+                    });
                 }
             });
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAksiLive')).hide();
+        };
+
+        window.aksiSelesaiLive = function() {
+            window.konfirmasiSelesai(targetIdAksi, true);
         };
 
         let bufferBarcode = "", timeoutBarcode;
@@ -795,9 +812,13 @@
                         const targetNo = parseInt(pecahan[1]).toString(), tokenScan = pecahan[2];
                         get(ref(db, `data_tamu/${getTglSistem()}/${targetNo}`)).then(snap => {
                             if(snap.exists() && snap.val().kode_unik === tokenScan) {
-                                const t = snap.val(), jp = t.jam_proses === "-" ? window.getJamMenitDetik() : t.jam_proses;
-                                update(ref(db, `data_tamu/${getTglSistem()}/${targetNo}`), { status: 3, jam_proses: jp, jam_selesai: window.getJamMenitDetik() });
-                                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Antrian ${String(targetNo).padStart(3,'0')} Selesai!`, showConfirmButton: false, timer: 3000 });
+                                if (snap.val().status === 3) {
+                                    Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: `Antrian ${String(targetNo).padStart(3,'0')} sudah berstatus Selesai.`, showConfirmButton: false, timer: 3000 });
+                                } else {
+                                    window.konfirmasiSelesai(targetNo, false);
+                                }
+                            } else {
+                                Swal.fire({ toast: true, position: 'top-end', icon: 'error', title: `QR Code Tidak Valid!`, showConfirmButton: false, timer: 3000 });
                             }
                         });
                     }
@@ -842,12 +863,12 @@
             setTimeout(() => {
                 if(pass === passwordAdminAktif) {
                     localStorage.setItem('sesiResepsionis', 'aktif'); 
+                    localStorage.setItem('lastActivityAdmin', Date.now());
                     spinner.style.display = 'none'; btn.style.display = 'block';
                     document.getElementById('layarLogin').style.display = 'none'; 
                     document.getElementById('areaUtama').style.display = 'flex';
                     document.getElementById('headerAdmin').style.display = 'flex';
                     document.getElementById('inputPassword').value = '';
-                    resetWaktuIdleAdmin();
                     bersihkanDataLama(); 
                 } else {
                     spinner.style.display = 'none'; btn.style.display = 'block'; alert('Password Salah!');
@@ -872,11 +893,13 @@
         };
 
         if(localStorage.getItem('sesiResepsionis') === 'aktif') {
-            document.getElementById('layarLogin').style.display = 'none'; 
-            document.getElementById('areaUtama').style.display = 'flex';
-            document.getElementById('headerAdmin').style.display = 'flex';
-            resetWaktuIdleAdmin();
-            bersihkanDataLama();
+            periksaIdleAdmin(); 
+            if(localStorage.getItem('sesiResepsionis') === 'aktif') {
+                document.getElementById('layarLogin').style.display = 'none'; 
+                document.getElementById('areaUtama').style.display = 'flex';
+                document.getElementById('headerAdmin').style.display = 'flex';
+                bersihkanDataLama();
+            }
         } else {
             document.getElementById('layarLogin').style.display = 'flex';
         }
@@ -921,7 +944,6 @@
             });
         };
 
-        // FUNGSI CETAK KIOS DENGAN SAKELAR CLASS BODY
         window.cetakUlangStrukKios = function(id) {
             const t = dataTamuHariIni[id]; if(!t) return;
             const strBarcode = `RSP-${String(id).padStart(3,'0')}-${t.kode_unik}`;
@@ -952,7 +974,6 @@
             }, 500);
         };
 
-        // FUNGSI CETAK MAP DENGAN SAKELAR CLASS BODY
         window.cetakUlangStrukMap = function(id, jamProsesManual = null) {
             const t = dataTamuHariIni[id]; if(!t) return;
             const jp = jamProsesManual ? jamProsesManual : (t.jam_proses === "-" ? window.getJamMenitDetik() : t.jam_proses);
