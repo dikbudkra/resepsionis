@@ -31,7 +31,6 @@
         .nav-tabs .nav-link { color: #495057; font-weight: 600; border: none; padding: 15px 20px; }
         .nav-tabs .nav-link.active { border-bottom: 3px solid #0d6efd; color: #0d6efd; background: transparent; }
         
-        /* PEMBARUAN AREA TABEL & LIVE (Agar membentang penuh dan tidak memotong tinggi) */
         .tab-content { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
         .tab-pane { height: 100%; overflow-y: auto; padding-right: 5px; }
         .tab-pane.active { display: flex !important; flex-direction: column; }
@@ -40,7 +39,7 @@
         .kotak-antrian:hover { transform: scale(1.05); z-index: 50; }
         .kotak-antrian .sub-label { font-size: 12px; font-weight: 700; text-transform: uppercase; margin-top: 4px; }
         
-        /* TOOLTIP CERDAS */
+        /* TOOLTIP CERDAS GLOBAL */
         #globalTooltip { position: fixed; display: none; width: max-content; max-width: 280px; text-align: left; border-radius: 8px; z-index: 999999; box-shadow: 0 6px 15px rgba(0,0,0,0.15); opacity: 0; transition: opacity 0.15s ease; pointer-events: none; }
         #globalTooltipText { padding: 10px 14px; font-size: 13px; line-height: 1.4; word-wrap: break-word; white-space: normal; }
         #globalTooltipArrow { position: absolute; bottom: 100%; margin-left: -6px; border-width: 0 6px 6px 6px; border-style: solid; transition: left 0.1s; }
@@ -245,20 +244,6 @@
         </div>
     </div>
 
-    <div class="modal fade" id="modalGrafikLaporan" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-light">
-                    <h5 class="modal-title fw-bold text-primary"><i class="fa-solid fa-chart-bar"></i> Statistik Pelayanan Tamu</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4 text-center">
-                    <canvas id="chartLaporan" style="max-height: 400px; width: 100%; background: #ffffff;"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div class="modal fade" id="modalAksiLive" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content border-0 shadow-lg">
@@ -327,14 +312,12 @@
                 tab.addEventListener('shown.bs.tab', (e) => {
                     const targetId = e.target.getAttribute('data-bs-target');
                     const targetPane = document.querySelector(targetId);
-                    // Pastikan pane yang aktif menggunakan display flex jika itu adalah area tabel
                     if(targetPane) {
                         targetPane.style.display = 'flex';
                         if (targetId === '#live-panel' || targetId === '#arsip-panel') {
                             targetPane.style.flexDirection = 'column';
                         }
                     }
-                    // Sembunyikan pane lainnya
                     const parentContent = targetPane.closest('.tab-content');
                     parentContent.querySelectorAll('.tab-pane').forEach(pane => {
                         if(pane !== targetPane) pane.style.display = 'none';
@@ -366,7 +349,6 @@
         let targetIdAksi = "";
         let chartInstance = null;
         
-        // --- PAGINATION VARIABEL ---
         let currentPage = 1;
         let itemsPerPage = 10;
         
@@ -549,7 +531,6 @@
             setTimeout(() => { if(tooltip.style.opacity === '0') tooltip.style.display = 'none'; }, 150);
         };
 
-        // FUNGSI GANTI BATAS PAGINASI & HALAMAN
         window.gantiLimit = function(val) {
             itemsPerPage = parseInt(val);
             currentPage = 1; 
@@ -641,21 +622,21 @@
                     </tr>`;
             });
 
-            // LOGIKA PANAH PREV & NEXT + ANGKA HALAMAN
             if(totalPages > 1 && paginasi) {
-                // Tombol Panah Kiri (Previous)
                 paginasi.innerHTML += `<button class="btn btn-sm btn-outline-primary fw-bold" onclick="gantiHalaman(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i></button>`;
 
-                // Angka Halaman
                 for(let i = 1; i <= totalPages; i++) {
                     const activeClass = i === currentPage ? 'btn-primary' : 'btn-outline-primary';
                     paginasi.innerHTML += `<button class="btn btn-sm ${activeClass} fw-bold" onclick="gantiHalaman(${i})">${i}</button>`;
                 }
 
-                // Tombol Panah Kanan (Next)
                 paginasi.innerHTML += `<button class="btn btn-sm btn-outline-primary fw-bold" onclick="gantiHalaman(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
             }
         }
+
+        // --- ENGINE PANGGILAN AUDIO (SUARA BEL & TTS GOOGLE) ---
+        const belAntrian = new Audio('https://actions.google.com/sounds/v1/alarms/ding_dong.ogg');
+        let isFirstLoadPanggilan = true;
 
         window.eksekusiLogin = function() {
             const pass = document.getElementById('inputPassword').value;
@@ -664,6 +645,22 @@
             btn.style.display = 'none'; spinner.style.display = 'block';
             setTimeout(() => {
                 if(pass === passwordAdminAktif) {
+                    
+                    // --- INTEGRASI PANCINGAN AUDIO UNTUK MEMBUKA SEGEL BROWSER ---
+                    belAntrian.volume = 0;
+                    belAntrian.play().then(() => {
+                        belAntrian.pause();
+                        belAntrian.currentTime = 0;
+                        belAntrian.volume = 1; // Kembalikan ke normal
+                    }).catch(e => console.log('Pancingan bel ditahan:', e));
+
+                    try {
+                        const pancinganTTS = new SpeechSynthesisUtterance(' ');
+                        pancinganTTS.volume = 0;
+                        window.speechSynthesis.speak(pancinganTTS);
+                    } catch(e) { console.log('Pancingan TTS ditahan:', e); }
+                    // -------------------------------------------------------------
+
                     localStorage.setItem('sesiResepsionis', 'aktif'); 
                     spinner.style.display = 'none'; btn.style.display = 'block';
                     document.getElementById('layarLogin').style.display = 'none'; 
@@ -811,9 +808,6 @@
 
         window.getJamMenitDetik = () => { const d = new Date(); return String(d.getHours()).padStart(2,'0') + ":" + String(d.getMinutes()).padStart(2,'0') + ":" + String(d.getSeconds()).padStart(2,'0'); };
 
-        const belAntrian = new Audio('https://actions.google.com/sounds/v1/alarms/ding_dong.ogg');
-        let isFirstLoadPanggilan = true;
-
         onValue(ref(db, 'sistem/panggilan_sekarang'), (snapshot) => {
             if (isFirstLoadPanggilan) { isFirstLoadPanggilan = false; return; }
 
@@ -821,7 +815,8 @@
                 const data = snapshot.val();
                 const suaraAktif = document.getElementById('toggleSuara').checked;
                 
-                if (Date.now() - data.waktu < 5000 && suaraAktif) {
+                // TOLERANSI DILONGGARKAN MENJADI 15 DETIK (15000ms) AGAR TIDAK LEWAT BATAS WAKTU SINKRONISASI
+                if (Date.now() - data.waktu < 15000 && suaraAktif) {
                     belAntrian.play().catch(err => console.log('Autoplay ditahan browser', err));
                     belAntrian.onended = () => {
                         const pesan = new SpeechSynthesisUtterance(`Nomor antrian. ${data.nomor}. silakan menuju meja pelayanan.`);
