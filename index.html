@@ -33,6 +33,9 @@
         
         .tab-content { padding: 20px; flex-grow: 1; overflow-y: auto; }
         
+        /* CSS Wajib agar seluruh isi Tab tertata turun ke bawah, bukan ke samping */
+        .tab-pane.active { display: flex !important; flex-direction: column !important; }
+        
         .kotak-antrian { position: relative; width: 110px; height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 48px; font-weight: 900; border-radius: 12px; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.03); }
         .kotak-antrian:hover { transform: scale(1.05); z-index: 50; }
         .kotak-antrian .sub-label { font-size: 12px; font-weight: 700; text-transform: uppercase; margin-top: 4px; }
@@ -175,15 +178,15 @@
                     <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-laporan">Laporan</button></li>
                     <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-setting"><i class="fa-solid fa-gear"></i></button></li>
                 </ul>
-                <div class="tab-content p-0" id="pills-tabContent" style="overflow-y:auto; display:block;">
-                    <div class="tab-pane fade show active" id="tab-rekap" style="display:block!important;">
+                <div class="tab-content p-0" id="pills-tabContent">
+                    <div class="tab-pane fade show active" id="tab-rekap">
                         <div class="alert alert-info p-2 mb-3 text-center fw-bold text-uppercase">Statistik Hari Ini</div>
                         <div class="d-flex justify-content-between border-bottom pb-2 mb-2"><span>Total Tamu:</span> <strong class="fs-5" id="rekapTotal">0</strong></div>
                         <div class="d-flex justify-content-between border-bottom pb-2 mb-2"><span>Selesai:</span> <strong class="text-success fs-5" id="rekapSelesai">0</strong></div>
                         <div class="d-flex justify-content-between mb-4"><span>Belum Diproses:</span> <strong class="text-danger fs-5" id="rekapSisa">0</strong></div>
                         <button class="btn btn-success w-100 fw-bold" onclick="downloadExcelHariIni()"><i class="fa-solid fa-file-excel"></i> Download Excel Harian</button>
                     </div>
-                    <div class="tab-pane fade" id="tab-laporan" style="display:none;">
+                    <div class="tab-pane fade" id="tab-laporan">
                         <p class="text-muted small mb-2">Periode laporan SLA pelayanan:</p>
                         <div class="row g-2 mb-2">
                             <div class="col"><input type="date" class="form-control form-control-sm" id="tglMulai"></div>
@@ -193,7 +196,7 @@
                         <hr>
                         <button class="btn btn-outline-primary btn-sm w-100 fw-bold" onclick="muatLaporanRentang()"><i class="fa-solid fa-chart-pie"></i> Lihat Grafik Statistik</button>
                     </div>
-                    <div class="tab-pane fade" id="tab-setting" style="display:none;">
+                    <div class="tab-pane fade" id="tab-setting">
                         <label class="fw-bold small mb-1">Pengaturan Password Sistem</label>
                         <div class="position-relative mb-3">
                             <input type="password" id="settingPassword" class="form-control text-center fw-bold" value="Posk02026!">
@@ -237,7 +240,7 @@
                         <h5 class="fw-bold m-0 text-secondary">Daftar Tamu Registrasi (Hari Ini)</h5>
                         <div class="d-flex align-items-center gap-2">
                             <span class="small fw-bold text-muted text-nowrap">Tampilkan:</span>
-                            <select id="selectLimit" class="form-select form-select-sm" style="width: 75px; font-weight: bold;" onchange="gantiLimit(this.value)">
+                            <select id="selectLimit" class="form-select form-select-sm" style="width: 75px; font-weight: bold;" onchange="window.gantiLimit(this.value)">
                                 <option value="10" selected>10</option>
                                 <option value="15">15</option>
                                 <option value="20">20</option>
@@ -347,9 +350,7 @@
                     const targetPane = document.querySelector(targetId);
                     if(targetPane) {
                         targetPane.style.display = 'flex';
-                        if (targetId === '#live-panel' || targetId === '#arsip-panel') {
-                            targetPane.style.flexDirection = 'column';
-                        }
+                        targetPane.style.flexDirection = 'column';
                     }
                     const parentContent = targetPane.closest('.tab-content');
                     parentContent.querySelectorAll('.tab-pane').forEach(pane => {
@@ -391,7 +392,6 @@
 
         let suaraAktif = true; 
         let suaraIndonesia = null;
-        const belAntrian = new Audio('https://actions.google.com/sounds/v1/alarms/ding_dong.ogg');
         
         function muatDaftarSuara() {
             const voices = window.speechSynthesis.getVoices();
@@ -537,14 +537,10 @@
             set(ref(db, 'sistem/pengaturan/suara_aktif'), isChecked);
             
             if (isChecked) {
-                belAntrian.currentTime = 0; 
-                belAntrian.play().catch(e => console.log('Bel ditahan browser:', e));
-                setTimeout(() => {
-                    const s = new SpeechSynthesisUtterance("Sistem suara resepsionis telah aktif");
-                    s.lang = 'id-ID'; 
-                    if (suaraIndonesia) s.voice = suaraIndonesia; 
-                    window.speechSynthesis.speak(s);
-                }, 1500); 
+                const s = new SpeechSynthesisUtterance("Sistem suara resepsionis telah aktif");
+                s.lang = 'id-ID'; 
+                if (suaraIndonesia) s.voice = suaraIndonesia; 
+                window.speechSynthesis.speak(s);
             } else {
                 window.speechSynthesis.cancel(); 
             }
@@ -625,8 +621,8 @@
                     gridLive.innerHTML += `
                         <div class="kotak-antrian status-${t.status}" 
                              onclick="window.bukaModalAksiLive('${id}')"
-                             onmouseenter="tampilkanTooltip(this)"
-                             onmouseleave="sembunyikanTooltip()"
+                             onmouseenter="window.tampilkanTooltip(this)"
+                             onmouseleave="window.sembunyikanTooltip()"
                              data-nama="${cleanNama}"
                              data-keperluan="${cleanKeperluan}"
                              data-status="${t.status}">
@@ -669,7 +665,6 @@
                 if(t.status === 2) badge = `<span class="badge bg-primary">Diproses</span>`;
                 if(t.status === 3) badge = `<span class="badge bg-success">Selesai</span>`;
 
-                // TOMBOL CETAK ADMIN & KIOS DI DATA TAMU SUDAH DITAMBAHKAN 'window.'
                 bodyTabel.innerHTML += `
                     <tr class="baris-tamu" onclick="window.bukaModalDetailTamu('${id}')">
                         <td class="fw-bold fs-5 text-center">${String(id).padStart(3, '0')}</td>
@@ -690,14 +685,14 @@
             });
 
             if(totalPages > 1 && paginasi) {
-                paginasi.innerHTML += `<button class="btn btn-sm btn-outline-primary fw-bold" onclick="gantiHalaman(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i></button>`;
+                paginasi.innerHTML += `<button class="btn btn-sm btn-outline-primary fw-bold" onclick="window.gantiHalaman(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}><i class="fa-solid fa-chevron-left"></i></button>`;
 
                 for(let i = 1; i <= totalPages; i++) {
                     const activeClass = i === currentPage ? 'btn-primary' : 'btn-outline-primary';
-                    paginasi.innerHTML += `<button class="btn btn-sm ${activeClass} fw-bold" onclick="gantiHalaman(${i})">${i}</button>`;
+                    paginasi.innerHTML += `<button class="btn btn-sm ${activeClass} fw-bold" onclick="window.gantiHalaman(${i})">${i}</button>`;
                 }
 
-                paginasi.innerHTML += `<button class="btn btn-sm btn-outline-primary fw-bold" onclick="gantiHalaman(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
+                paginasi.innerHTML += `<button class="btn btn-sm btn-outline-primary fw-bold" onclick="window.gantiHalaman(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}><i class="fa-solid fa-chevron-right"></i></button>`;
             }
         }
 
@@ -716,16 +711,11 @@
                 const data = snapshot.val();
                 
                 if (suaraAktif && (Date.now() - data.waktu < 15000)) {
-                    belAntrian.currentTime = 0; 
-                    belAntrian.play().catch(err => console.log('Gagal play bel:', err));
-                    
-                    setTimeout(() => {
-                        const pesan = new SpeechSynthesisUtterance(`Nomor antrian... ${data.nomor}... silakan menuju meja pelayanan.`);
-                        pesan.lang = 'id-ID';
-                        if (suaraIndonesia) pesan.voice = suaraIndonesia;
-                        pesan.rate = 0.85; 
-                        window.speechSynthesis.speak(pesan);
-                    }, 1500); 
+                    const pesan = new SpeechSynthesisUtterance(`Nomor antrian... ${data.nomor}... silakan menuju meja pelayanan.`);
+                    pesan.lang = 'id-ID';
+                    if (suaraIndonesia) pesan.voice = suaraIndonesia;
+                    pesan.rate = 0.85; 
+                    window.speechSynthesis.speak(pesan);
                 }
             }
         });
@@ -752,7 +742,7 @@
                 denyButtonColor: '#4b5563',
                 cancelButtonColor: '#dc3545'
             }).then((result) => {
-                const jp = getJamMenitDetik();
+                const jp = window.getJamMenitDetik();
                 if (result.isConfirmed) {
                     update(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`), { status: 2, jam_proses: jp }).then(() => {
                         window.cetakUlangStrukMap(targetIdAksi, jp);
@@ -768,8 +758,8 @@
         window.aksiSelesaiLive = function() {
             get(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`)).then(snap => {
                 if(snap.exists()){
-                    const t = snap.val(), jp = t.jam_proses === "-" ? getJamMenitDetik() : t.jam_proses;
-                    update(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`), { status: 3, jam_proses: jp, jam_selesai: getJamMenitDetik() });
+                    const t = snap.val(), jp = t.jam_proses === "-" ? window.getJamMenitDetik() : t.jam_proses;
+                    update(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`), { status: 3, jam_proses: jp, jam_selesai: window.getJamMenitDetik() });
                 }
             });
             bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAksiLive')).hide();
@@ -787,8 +777,8 @@
                         const targetNo = parseInt(pecahan[1]).toString(), tokenScan = pecahan[2];
                         get(ref(db, `data_tamu/${getTglSistem()}/${targetNo}`)).then(snap => {
                             if(snap.exists() && snap.val().kode_unik === tokenScan) {
-                                const t = snap.val(), jp = t.jam_proses === "-" ? getJamMenitDetik() : t.jam_proses;
-                                update(ref(db, `data_tamu/${getTglSistem()}/${targetNo}`), { status: 3, jam_proses: jp, jam_selesai: getJamMenitDetik() });
+                                const t = snap.val(), jp = t.jam_proses === "-" ? window.getJamMenitDetik() : t.jam_proses;
+                                update(ref(db, `data_tamu/${getTglSistem()}/${targetNo}`), { status: 3, jam_proses: jp, jam_selesai: window.getJamMenitDetik() });
                                 Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Antrian ${String(targetNo).padStart(3,'0')} Selesai!`, showConfirmButton: false, timer: 3000 });
                             }
                         });
@@ -981,6 +971,8 @@
             if(!timeStr || timeStr === "-") return 0;
             const p = timeStr.split(':'); return (parseInt(p[0])*60) + parseInt(p[1]) + (parseInt(p[2])/60);
         }
+
+        window.getJamMenitDetik = () => { const d = new Date(); return String(d.getHours()).padStart(2,'0') + ":" + String(d.getMinutes()).padStart(2,'0') + ":" + String(d.getSeconds()).padStart(2,'0'); };
 
         window.downloadExcelHariIni = function() {
             if(Object.keys(dataTamuHariIni).length === 0) return Swal.fire('Kosong', 'Tidak ada data tamu harian.', 'info');
