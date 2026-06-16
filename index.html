@@ -32,8 +32,6 @@
         .nav-tabs .nav-link.active { border-bottom: 3px solid #0d6efd; color: #0d6efd; background: transparent; }
         
         .tab-content { padding: 20px; flex-grow: 1; overflow-y: auto; }
-        
-        /* CSS Wajib agar seluruh isi Tab tertata turun ke bawah, bukan ke samping */
         .tab-pane.active { display: flex !important; flex-direction: column !important; }
         
         .kotak-antrian { position: relative; width: 110px; height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 48px; font-weight: 900; border-radius: 12px; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.03); }
@@ -63,14 +61,24 @@
         .qr-wrapper { display: flex; justify-content: center; align-items: center; width: 100%; margin: 15px 0; }
         .qr-wrapper img, .qr-wrapper canvas { margin: 0 auto; display: block; }
 
+        /* CSS PRINT DENGAN SAKELAR CERDAS ANTI-TUMPUK */
         @media print {
             @page { size: portrait; margin: 0; }
             body * { visibility: hidden; }
-            #areaCetakStrukAdmin, #areaCetakStrukAdmin *, #areaCetakMapAdmin, #areaCetakMapAdmin * { visibility: visible; }
             
-            #areaCetakStrukAdmin, #areaCetakMapAdmin { 
-                display: block !important; position: absolute; left: 0; top: 0; margin: 0; padding: 0; width: 100%;
-            }
+            /* Sembunyikan default */
+            #areaCetakStrukAdmin, #areaCetakMapAdmin { display: none !important; }
+
+            /* Tampilkan HANYA saat class mode Kios aktif */
+            body.print-mode-kios #areaCetakStrukAdmin,
+            body.print-mode-kios #areaCetakStrukAdmin * { visibility: visible; }
+            body.print-mode-kios #areaCetakStrukAdmin { display: block !important; position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; }
+
+            /* Tampilkan HANYA saat class mode Map aktif */
+            body.print-mode-map #areaCetakMapAdmin,
+            body.print-mode-map #areaCetakMapAdmin * { visibility: visible; }
+            body.print-mode-map #areaCetakMapAdmin { display: block !important; position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; }
+
             .struk-card { 
                 background: white; 
                 padding: 10px 5px; 
@@ -78,11 +86,9 @@
                 color: #000; 
                 border: none;
                 font-family: Arial, sans-serif;
+                margin: 0 auto; /* Menjaga cetakan tetap persis di tengah kertas thermal */
             }
-            .struk-card * { 
-                line-height: 1.5; 
-                letter-spacing: 0.5px;
-            }
+            .struk-card * { line-height: 1.5; letter-spacing: 0.5px; }
             .struk-card h4 { letter-spacing: 1px; }
             .struk-card h1 { letter-spacing: 3px; }
             .garis-pembatas { border-top: 1px solid #000; margin: 8px 0; }
@@ -125,7 +131,7 @@
             <div class="garis-pembatas"></div>
             <div class="my-2" style="font-size:10px; font-weight:bold;" id="waktuStrukAdmin"></div>
             <div class="fw-bold mt-2" style="font-size:11px;">NOMOR ANTRIAN ANDA:</div>
-            <h1 style="font-weight:900; margin:5px 0;" id="noAntrianStrukAdmin">000</h1>
+            <h1 class="fw-bold my-1" style="font-size:42px;" id="noAntrianStrukAdmin">000</h1>
             <p class="small fw-bold px-2" style="font-size:10px;">Silakan duduk dan menunggu dipanggil.</p>
             <div class="qr-wrapper" id="qrContainer1"></div>
             <div class="garis-pembatas"></div>
@@ -164,7 +170,7 @@
                 <hr>
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="fw-bold">Pendaftaran Kios:</span>
-                    <button id="btnStatusPelayanan" class="btn btn-success btn-sm fw-bold" onclick="toggleStatusBuka()">BUKA</button>
+                    <button id="btnStatusPelayanan" class="btn btn-success btn-sm fw-bold" onclick="window.toggleStatusBuka()">BUKA</button>
                 </div>
                 <div class="form-check form-switch mt-2">
                     <input class="form-check-input" type="checkbox" id="toggleSuara" checked onchange="toggleSuaraSistem()">
@@ -263,7 +269,6 @@
         </div>
     </div>
 
-    <!-- MODAL AKSI LIVE -->
     <div class="modal fade" id="modalAksiLive" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content border-0 shadow-lg">
@@ -282,7 +287,6 @@
         </div>
     </div>
 
-    <!-- MODAL DETAIL & EDIT TAMU -->
     <div class="modal fade" id="modalDetailTamu" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg">
@@ -325,7 +329,6 @@
         </div>
     </div>
 
-    <!-- MODAL GRAFIK LAPORAN -->
     <div class="modal fade" id="modalGrafikLaporan" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg">
@@ -392,6 +395,7 @@
 
         let suaraAktif = true; 
         let suaraIndonesia = null;
+        const belAntrian = new Audio('https://actions.google.com/sounds/v1/alarms/ding_dong.ogg');
         
         function muatDaftarSuara() {
             const voices = window.speechSynthesis.getVoices();
@@ -530,6 +534,11 @@
             btnBuka.className = statusBukaSekarang ? "btn btn-success btn-sm fw-bold" : "btn btn-danger btn-sm fw-bold";
         });
 
+        // KEMBALIKAN FUNGSI KLIK MANUAL STATUS KIOS
+        window.toggleStatusBuka = function() {
+            set(ref(db, 'sistem/pengaturan/status_buka'), !statusBukaSekarang);
+        };
+
         window.toggleSuaraSistem = function() {
             const isChecked = document.getElementById('toggleSuara').checked;
             suaraAktif = isChecked; 
@@ -537,10 +546,14 @@
             set(ref(db, 'sistem/pengaturan/suara_aktif'), isChecked);
             
             if (isChecked) {
-                const s = new SpeechSynthesisUtterance("Sistem suara resepsionis telah aktif");
-                s.lang = 'id-ID'; 
-                if (suaraIndonesia) s.voice = suaraIndonesia; 
-                window.speechSynthesis.speak(s);
+                belAntrian.currentTime = 0; 
+                belAntrian.play().catch(e => console.log('Bel ditahan browser:', e));
+                setTimeout(() => {
+                    const s = new SpeechSynthesisUtterance("Sistem suara resepsionis telah aktif");
+                    s.lang = 'id-ID'; 
+                    if (suaraIndonesia) s.voice = suaraIndonesia; 
+                    window.speechSynthesis.speak(s);
+                }, 1500); 
             } else {
                 window.speechSynthesis.cancel(); 
             }
@@ -711,11 +724,16 @@
                 const data = snapshot.val();
                 
                 if (suaraAktif && (Date.now() - data.waktu < 15000)) {
-                    const pesan = new SpeechSynthesisUtterance(`Nomor antrian... ${data.nomor}... silakan menuju meja pelayanan.`);
-                    pesan.lang = 'id-ID';
-                    if (suaraIndonesia) pesan.voice = suaraIndonesia;
-                    pesan.rate = 0.85; 
-                    window.speechSynthesis.speak(pesan);
+                    belAntrian.currentTime = 0; 
+                    belAntrian.play().catch(err => console.log('Gagal play bel:', err));
+                    
+                    setTimeout(() => {
+                        const pesan = new SpeechSynthesisUtterance(`Nomor antrian... ${data.nomor}... silakan menuju meja pelayanan.`);
+                        pesan.lang = 'id-ID';
+                        if (suaraIndonesia) pesan.voice = suaraIndonesia;
+                        pesan.rate = 0.85; 
+                        window.speechSynthesis.speak(pesan);
+                    }, 1500); 
                 }
             }
         });
@@ -903,6 +921,7 @@
             });
         };
 
+        // FUNGSI CETAK KIOS DENGAN SAKELAR CLASS BODY
         window.cetakUlangStrukKios = function(id) {
             const t = dataTamuHariIni[id]; if(!t) return;
             const strBarcode = `RSP-${String(id).padStart(3,'0')}-${t.kode_unik}`;
@@ -926,10 +945,14 @@
             const qrSize = ukKios === "58" ? 90 : 130;
             new QRCode(qrContainer, { text: strBarcode, width: qrSize, height: qrSize });
 
-            document.getElementById('areaCetakStrukAdmin').style.display = 'block';
-            setTimeout(() => { window.print(); document.getElementById('areaCetakStrukAdmin').style.display = 'none'; }, 500);
+            document.body.classList.add('print-mode-kios');
+            setTimeout(() => { 
+                window.print(); 
+                document.body.classList.remove('print-mode-kios'); 
+            }, 500);
         };
 
+        // FUNGSI CETAK MAP DENGAN SAKELAR CLASS BODY
         window.cetakUlangStrukMap = function(id, jamProsesManual = null) {
             const t = dataTamuHariIni[id]; if(!t) return;
             const jp = jamProsesManual ? jamProsesManual : (t.jam_proses === "-" ? window.getJamMenitDetik() : t.jam_proses);
@@ -956,8 +979,11 @@
             const qrSize = ukAdmin === "58" ? 90 : 130;
             new QRCode(qrContainer, { text: strBarcode, width: qrSize, height: qrSize });
 
-            document.getElementById('areaCetakMapAdmin').style.display = 'block';
-            setTimeout(() => { window.print(); document.getElementById('areaCetakMapAdmin').style.display = 'none'; }, 500);
+            document.body.classList.add('print-mode-map');
+            setTimeout(() => { 
+                window.print(); 
+                document.body.classList.remove('print-mode-map'); 
+            }, 500);
         };
 
         function formatDurasi(totalMenit) {
