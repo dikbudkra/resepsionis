@@ -118,7 +118,6 @@
         <div class="struk-card" id="cardCetakMapAdmin" style="text-align: center;">
             <h4 class="fw-bold m-0" style="font-size:13px; letter-spacing:1px; border-bottom:2px solid #000; padding-bottom:3px; text-transform:uppercase;">Berkas Pelayanan</h4>
             <div class="fw-bold mt-3" style="font-size:11px; color:#334155;">NOMOR ANTRIAN</div>
-            
             <h1 style="font-weight:900; line-height:1; color:#000; margin:10px 0;" id="mapNoAntrian">000</h1>
             
             <div id="infoMapWrapper" style="text-align: center; font-family: sans-serif; padding: 0 5px;">
@@ -147,8 +146,9 @@
                     <span class="fw-bold">Pendaftaran Kios:</span>
                     <button id="btnStatusPelayanan" class="btn btn-success btn-sm fw-bold" onclick="toggleStatusBuka()">BUKA</button>
                 </div>
+                <!-- SAKELAR SUARA -->
                 <div class="form-check form-switch mt-2">
-                    <input class="form-check-input" type="checkbox" id="toggleSuara" checked>
+                    <input class="form-check-input" type="checkbox" id="toggleSuara" checked onchange="toggleSuaraSistem()">
                     <label class="form-check-label fw-bold" for="toggleSuara" id="labelSuara">Suara Panggilan (ON)</label>
                 </div>
             </div>
@@ -244,6 +244,7 @@
         </div>
     </div>
 
+    <!-- MODAL GRAFIK LAPORAN -->
     <div class="modal fade" id="modalGrafikLaporan" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg">
@@ -258,6 +259,7 @@
         </div>
     </div>
 
+    <!-- MODAL AKSI LIVE -->
     <div class="modal fade" id="modalAksiLive" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content border-0 shadow-lg">
@@ -276,6 +278,7 @@
         </div>
     </div>
 
+    <!-- MODAL DETAIL & EDIT TAMU -->
     <div class="modal fade" id="modalDetailTamu" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg">
@@ -370,12 +373,11 @@
         let timeoutIdleAdmin;
         let throttleAdmin;
 
-        // --- SISTEM AUDIO TANGGUH ---
-        let suaraAktif = false;
+        // --- SISTEM AUDIO YANG SUDAH DIBERSIHKAN ---
+        let suaraAktif = true; 
         let suaraIndonesia = null;
         const belAntrian = new Audio('https://actions.google.com/sounds/v1/alarms/ding_dong.ogg');
         
-        // Memuat kamus aksen Indonesia sejak awal
         function muatDaftarSuara() {
             const voices = window.speechSynthesis.getVoices();
             suaraIndonesia = voices.find(v => v.lang.includes('id') && v.name.includes('Google')) || voices.find(v => v.lang.includes('id') || v.name.toLowerCase().includes('indonesia'));
@@ -495,16 +497,15 @@
             });
         }
 
+        // SATU-SATUNYA LISTENER PENGATURAN (TIDAK GANDA LAGI)
         onValue(ref(db, 'sistem/pengaturan'), (snapshot) => {
             const config = snapshot.val() || {}; 
             passwordAdminAktif = config.password_admin || "Posk02026!";
             statusBukaSekarang = config.status_buka !== false;
             
-            // --- Singkronisasi Suara dari DB (Agar jika di-refresh tetap sesuai pengaturan terakhir) ---
             suaraAktif = config.suara_aktif !== false;
             document.getElementById('toggleSuara').checked = suaraAktif;
             document.getElementById('labelSuara').innerText = suaraAktif ? "Suara Panggilan (ON)" : "Suara Panggilan (OFF)";
-            // ------------------------------------------------------------------------------------------
 
             document.getElementById('settingPassword').value = passwordAdminAktif;
             document.getElementById('settingPrinterKios').value = config.printer_kios || "80";
@@ -515,23 +516,24 @@
             btnBuka.className = statusBukaSekarang ? "btn btn-success btn-sm fw-bold" : "btn btn-danger btn-sm fw-bold";
         });
 
-        // FUNGSI MEMBUKA KUNCI AUDIO (WAJIB DITEKAN ADMIN)
+        // FUNGSI TOGGLE SUARA (UPDATE LABEL & DATABASE SECARA INSTAN)
         window.toggleSuaraSistem = function() {
             const isChecked = document.getElementById('toggleSuara').checked;
+            suaraAktif = isChecked; 
+            document.getElementById('labelSuara').innerText = isChecked ? "Suara Panggilan (ON)" : "Suara Panggilan (OFF)";
             set(ref(db, 'sistem/pengaturan/suara_aktif'), isChecked);
             
             if (isChecked) {
-                // Mainkan Ting-Nong dan Bicara (Membuka segel peramban)
-                belAntrian.play().catch(e => console.log('Gagal membunyikan bel:', e));
-                
+                belAntrian.currentTime = 0; // Pastikan kaset di-rewind
+                belAntrian.play().catch(e => console.log('Bel ditahan browser:', e));
                 setTimeout(() => {
                     const s = new SpeechSynthesisUtterance("Sistem suara resepsionis telah aktif");
                     s.lang = 'id-ID'; 
                     if (suaraIndonesia) s.voice = suaraIndonesia; 
                     window.speechSynthesis.speak(s);
-                }, 1500); // Tunggu bel selesai baru bicara
+                }, 1500); 
             } else {
-                window.speechSynthesis.cancel(); // Matikan suara jika sedang bicara
+                window.speechSynthesis.cancel(); // Bungkam seketika
             }
         };
 
@@ -685,6 +687,100 @@
             }
         }
 
+        // SATU-SATUNYA LISTENER PANGGILAN ANTRIAN
+        let isFirstLoadPanggilan = true;
+        onValue(ref(db, 'sistem/panggilan_sekarang'), (snapshot) => {
+            if (isFirstLoadPanggilan) { isFirstLoadPanggilan = false; return; }
+
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                
+                // Murni berjalan jika tombol sakelar ON (suaraAktif === true)
+                if (suaraAktif && (Date.now() - data.waktu < 15000)) {
+                    
+                    belAntrian.currentTime = 0; // REWIND KASET
+                    belAntrian.play().catch(err => console.log('Gagal play bel:', err));
+                    
+                    // Putar suara panggilan (paralel dengan jeda aman agar tidak saling menunggu)
+                    setTimeout(() => {
+                        const pesan = new SpeechSynthesisUtterance(`Nomor antrian... ${data.nomor}... silakan menuju meja pelayanan.`);
+                        pesan.lang = 'id-ID';
+                        if (suaraIndonesia) pesan.voice = suaraIndonesia;
+                        pesan.rate = 0.85; 
+                        window.speechSynthesis.speak(pesan);
+                    }, 1500); 
+                }
+            }
+        });
+
+        window.aksiPanggilLive = function() {
+            update(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`), { status: 1 });
+            set(ref(db, 'sistem/panggilan_sekarang'), { nomor: parseInt(targetIdAksi), waktu: Date.now() });
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAksiLive')).hide();
+        };
+
+        window.aksiProsesLive = function() {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAksiLive')).hide();
+
+            Swal.fire({
+                title: 'Proses Antrian ' + String(targetIdAksi).padStart(3, '0') + '?',
+                text: 'Pilih opsi tindakan untuk map berkas pelayanan tamu:',
+                icon: 'question',
+                showDenyButton: true,
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-print"></i> Proses & Cetak Map',
+                denyButtonText: 'Proses Saja',
+                cancelButtonText: 'Batal',
+                confirmButtonColor: '#2563eb',
+                denyButtonColor: '#4b5563',
+                cancelButtonColor: '#dc3545'
+            }).then((result) => {
+                const jp = getJamMenitDetik();
+                if (result.isConfirmed) {
+                    update(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`), { status: 2, jam_proses: jp }).then(() => {
+                        window.cetakUlangStrukMap(targetIdAksi, jp);
+                    });
+                } else if (result.isDenied) {
+                    update(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`), { status: 2, jam_proses: jp }).then(() => {
+                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Antrian diproses tanpa cetak', showConfirmButton: false, timer: 2000 });
+                    });
+                }
+            });
+        };
+
+        window.aksiSelesaiLive = function() {
+            get(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`)).then(snap => {
+                if(snap.exists()){
+                    const t = snap.val(), jp = t.jam_proses === "-" ? getJamMenitDetik() : t.jam_proses;
+                    update(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`), { status: 3, jam_proses: jp, jam_selesai: getJamMenitDetik() });
+                }
+            });
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAksiLive')).hide();
+        };
+
+        let bufferBarcode = "", timeoutBarcode;
+        document.addEventListener('keydown', (e) => {
+            if(['INPUT', 'TEXTAREA', 'SELECT', 'PASSWORD'].includes(e.target.tagName)) return;
+            if(e.key !== 'Enter') {
+                bufferBarcode += e.key; clearTimeout(timeoutBarcode); timeoutBarcode = setTimeout(() => { bufferBarcode = ""; }, 100); 
+            } else {
+                if(bufferBarcode.startsWith("RSP-")) {
+                    const pecahan = bufferBarcode.split('-');
+                    if(pecahan.length === 3) {
+                        const targetNo = parseInt(pecahan[1]).toString(), tokenScan = pecahan[2];
+                        get(ref(db, `data_tamu/${getTglSistem()}/${targetNo}`)).then(snap => {
+                            if(snap.exists() && snap.val().kode_unik === tokenScan) {
+                                const t = snap.val(), jp = t.jam_proses === "-" ? getJamMenitDetik() : t.jam_proses;
+                                update(ref(db, `data_tamu/${getTglSistem()}/${targetNo}`), { status: 3, jam_proses: jp, jam_selesai: getJamMenitDetik() });
+                                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Antrian ${String(targetNo).padStart(3,'0')} Selesai!`, showConfirmButton: false, timer: 3000 });
+                            }
+                        });
+                    }
+                }
+                bufferBarcode = "";
+            }
+        });
+
         window.eksekusiLogin = function() {
             const pass = document.getElementById('inputPassword').value;
             const btn = document.getElementById('btnLogin'), spinner = document.getElementById('spinnerLogin');
@@ -828,105 +924,6 @@
             document.getElementById('areaCetakMapAdmin').style.display = 'block';
             setTimeout(() => { window.print(); document.getElementById('areaCetakMapAdmin').style.display = 'none'; }, 500);
         };
-
-        window.bukaModalAksiLive = function(id) {
-            targetIdAksi = id; document.getElementById('liveNoTarget').innerText = String(id).padStart(3, '0');
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAksiLive')).show();
-        };
-
-        window.getJamMenitDetik = () => { const d = new Date(); return String(d.getHours()).padStart(2,'0') + ":" + String(d.getMinutes()).padStart(2,'0') + ":" + String(d.getSeconds()).padStart(2,'0'); };
-
-        let isFirstLoadPanggilan = true;
-
-        onValue(ref(db, 'sistem/panggilan_sekarang'), (snapshot) => {
-            if (isFirstLoadPanggilan) { isFirstLoadPanggilan = false; return; }
-
-            if (snapshot.exists() && suaraAktif) {
-                const data = snapshot.val();
-                
-                if (Date.now() - data.waktu < 15000) {
-                    // Panggil Bel Ding-Dong
-                    belAntrian.play().catch(err => console.log('Gagal play bel:', err));
-                    
-                    // Panggil TTS setelah jeda aman (paralel)
-                    setTimeout(() => {
-                        const pesan = new SpeechSynthesisUtterance(`Nomor antrian... ${data.nomor}... silakan menuju meja pelayanan.`);
-                        pesan.lang = 'id-ID';
-                        if (suaraIndonesia) pesan.voice = suaraIndonesia;
-                        pesan.rate = 0.85; 
-                        window.speechSynthesis.speak(pesan);
-                    }, 1200); 
-                }
-            }
-        });
-
-        window.aksiPanggilLive = function() {
-            update(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`), { status: 1 });
-            set(ref(db, 'sistem/panggilan_sekarang'), { nomor: parseInt(targetIdAksi), waktu: Date.now() });
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAksiLive')).hide();
-        };
-
-        window.aksiProsesLive = function() {
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAksiLive')).hide();
-
-            Swal.fire({
-                title: 'Proses Antrian ' + String(targetIdAksi).padStart(3, '0') + '?',
-                text: 'Pilih opsi tindakan untuk map berkas pelayanan tamu:',
-                icon: 'question',
-                showDenyButton: true,
-                showCancelButton: true,
-                confirmButtonText: '<i class="fa-solid fa-print"></i> Proses & Cetak Map',
-                denyButtonText: 'Proses Saja',
-                cancelButtonText: 'Batal',
-                confirmButtonColor: '#2563eb',
-                denyButtonColor: '#4b5563',
-                cancelButtonColor: '#dc3545'
-            }).then((result) => {
-                const jp = getJamMenitDetik();
-                if (result.isConfirmed) {
-                    update(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`), { status: 2, jam_proses: jp }).then(() => {
-                        window.cetakUlangStrukMap(targetIdAksi, jp);
-                    });
-                } else if (result.isDenied) {
-                    update(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`), { status: 2, jam_proses: jp }).then(() => {
-                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Antrian diproses tanpa cetak', showConfirmButton: false, timer: 2000 });
-                    });
-                }
-            });
-        };
-
-        window.aksiSelesaiLive = function() {
-            get(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`)).then(snap => {
-                if(snap.exists()){
-                    const t = snap.val(), jp = t.jam_proses === "-" ? getJamMenitDetik() : t.jam_proses;
-                    update(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`), { status: 3, jam_proses: jp, jam_selesai: getJamMenitDetik() });
-                }
-            });
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAksiLive')).hide();
-        };
-
-        let bufferBarcode = "", timeoutBarcode;
-        document.addEventListener('keydown', (e) => {
-            if(['INPUT', 'TEXTAREA', 'SELECT', 'PASSWORD'].includes(e.target.tagName)) return;
-            if(e.key !== 'Enter') {
-                bufferBarcode += e.key; clearTimeout(timeoutBarcode); timeoutBarcode = setTimeout(() => { bufferBarcode = ""; }, 100); 
-            } else {
-                if(bufferBarcode.startsWith("RSP-")) {
-                    const pecahan = bufferBarcode.split('-');
-                    if(pecahan.length === 3) {
-                        const targetNo = parseInt(pecahan[1]).toString(), tokenScan = pecahan[2];
-                        get(ref(db, `data_tamu/${getTglSistem()}/${targetNo}`)).then(snap => {
-                            if(snap.exists() && snap.val().kode_unik === tokenScan) {
-                                const t = snap.val(), jp = t.jam_proses === "-" ? getJamMenitDetik() : t.jam_proses;
-                                update(ref(db, `data_tamu/${getTglSistem()}/${targetNo}`), { status: 3, jam_proses: jp, jam_selesai: getJamMenitDetik() });
-                                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Antrian ${String(targetNo).padStart(3,'0')} Selesai!`, showConfirmButton: false, timer: 3000 });
-                            }
-                        });
-                    }
-                }
-                bufferBarcode = "";
-            }
-        });
 
         let currentIdEdit = "";
         window.bukaModalDetailTamu = function(id) {
