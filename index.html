@@ -31,14 +31,12 @@
         .nav-tabs .nav-link { color: #495057; font-weight: 600; border: none; padding: 15px 20px; }
         .nav-tabs .nav-link.active { border-bottom: 3px solid #0d6efd; color: #0d6efd; background: transparent; }
         
-        /* PERBAIKAN STABILITAS TINGGI TABEL & KOTAK LIVE */
         .tab-content { padding: 20px; flex-grow: 1; overflow-y: auto; }
         
         .kotak-antrian { position: relative; width: 110px; height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 48px; font-weight: 900; border-radius: 12px; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.03); }
         .kotak-antrian:hover { transform: scale(1.05); z-index: 50; }
         .kotak-antrian .sub-label { font-size: 12px; font-weight: 700; text-transform: uppercase; margin-top: 4px; }
         
-        /* TOOLTIP CERDAS GLOBAL (ANTI KEDIP) */
         #globalTooltip { position: fixed; display: none; width: max-content; max-width: 280px; text-align: left; border-radius: 8px; z-index: 999999; box-shadow: 0 6px 15px rgba(0,0,0,0.15); opacity: 0; transition: opacity 0.15s ease; pointer-events: none; }
         #globalTooltipText { padding: 10px 14px; font-size: 13px; line-height: 1.4; word-wrap: break-word; white-space: normal; }
         #globalTooltipArrow { position: absolute; bottom: 100%; margin-left: -6px; border-width: 0 6px 6px 6px; border-style: solid; transition: left 0.1s; }
@@ -62,13 +60,31 @@
         .qr-wrapper { display: flex; justify-content: center; align-items: center; width: 100%; margin: 15px 0; }
         .qr-wrapper img, .qr-wrapper canvas { margin: 0 auto; display: block; }
 
+        /* PERBAIKAN DESAIN CETAKAN THERMAL (KOTAK HILANG, SPASI RAPI) */
         @media print {
+            @page { size: portrait; margin: 0; }
             body * { visibility: hidden; }
             #areaCetakStrukAdmin, #areaCetakStrukAdmin *, #areaCetakMapAdmin, #areaCetakMapAdmin * { visibility: visible; }
-            #areaCetakStrukAdmin, #areaCetakMapAdmin { display: block !important; position: absolute; left: 0; top: 0; margin: 0; padding: 5mm; }
-            @page { margin: 0; }
+            
+            #areaCetakStrukAdmin, #areaCetakMapAdmin { 
+                display: block !important; position: absolute; left: 0; top: 0; margin: 0; padding: 0; width: 100%;
+            }
+            .struk-card { 
+                background: white; 
+                padding: 10px 5px; 
+                text-align: center; 
+                color: #000; 
+                border: none; /* Kotak luar putus-putus dihilangkan */
+                font-family: Arial, sans-serif;
+            }
+            .struk-card * { 
+                line-height: 1.5; 
+                letter-spacing: 0.5px; /* Mencegah huruf saling nempel */
+            }
+            .struk-card h4 { letter-spacing: 1px; }
+            .struk-card h1 { letter-spacing: 3px; }
+            .garis-pembatas { border-top: 1px solid #000; margin: 8px 0; }
         }
-        .struk-card { background: white; border: 1px dashed #000; padding: 15px; text-align: center; color: #000; }
     </style>
 </head>
 <body>
@@ -103,30 +119,33 @@
     <div id="areaCetakStrukAdmin">
         <div class="struk-card" id="cardCetakAdmin">
             <h4 class="fw-bold m-0" style="font-size:16px;">DISDIKBUD</h4>
-            <p class="small m-0 text-muted" style="font-size:10px; border-bottom:1px dashed #000; padding-bottom:5px;">KABUPATEN KARANGANYAR</p>
-            <div class="my-2" style="font-size:9px;" id="waktuStrukAdmin"></div>
+            <p class="small m-0 text-muted" style="font-size:10px;">KABUPATEN KARANGANYAR</p>
+            <div class="garis-pembatas"></div>
+            <div class="my-2" style="font-size:10px; font-weight:bold;" id="waktuStrukAdmin"></div>
             <div class="fw-bold mt-2" style="font-size:11px;">NOMOR ANTRIAN ANDA:</div>
             <h1 style="font-weight:900; margin:5px 0;" id="noAntrianStrukAdmin">000</h1>
             <p class="small fw-bold px-2" style="font-size:10px;">Silakan duduk dan menunggu dipanggil.</p>
             <div class="qr-wrapper" id="qrContainer1"></div>
-            <p class="m-0 text-center fw-bold" style="font-size:9px; border-top:1px dashed #000; padding-top:5px;">Silahkan serahkan struk ini kepada admin untuk di-scan pada saat urusan selesai.</p>
+            <div class="garis-pembatas"></div>
+            <p class="m-0 text-center fw-bold" style="font-size:10px;">Silahkan serahkan struk ini kepada admin untuk di-scan pada saat urusan selesai.</p>
         </div>
     </div>
 
     <div id="areaCetakMapAdmin">
         <div class="struk-card" id="cardCetakMapAdmin" style="text-align: center;">
-            <h4 class="fw-bold m-0" style="font-size:13px; letter-spacing:1px; border-bottom:2px solid #000; padding-bottom:3px; text-transform:uppercase;">Berkas Pelayanan</h4>
-            <div class="fw-bold mt-3" style="font-size:11px; color:#334155;">NOMOR ANTRIAN</div>
+            <h4 class="fw-bold m-0" style="font-size:14px; letter-spacing:1px; text-transform:uppercase;">Berkas Pelayanan</h4>
+            <div class="garis-pembatas" style="border-top: 2px solid #000; margin-top: 4px;"></div>
+            <div class="fw-bold mt-3" style="font-size:12px; color:#334155;">NOMOR ANTRIAN</div>
             <h1 style="font-weight:900; line-height:1; color:#000; margin:10px 0;" id="mapNoAntrian">000</h1>
             
             <div id="infoMapWrapper" style="text-align: center; font-family: sans-serif; padding: 0 5px;">
-                <hr style="border-top:1px dashed #000; margin:8px 0;">
-                <div style="font-weight: bold; padding: 4px 0;" id="mapNama">-</div>
-                <hr style="border-top:1px dashed #000; margin:8px 0;">
-                <div style="padding: 4px 0;" id="mapWaktu">-</div>
-                <hr style="border-top:1px dashed #000; margin:8px 0;">
-                <div style="font-weight: bold; padding: 4px 0;" id="mapKeperluan">-</div>
-                <hr style="border-top:1px dashed #000; margin:8px 0;">
+                <div class="garis-pembatas"></div>
+                <div style="font-weight: bold; padding: 4px 0; font-size:12px;" id="mapNama">-</div>
+                <div class="garis-pembatas"></div>
+                <div style="padding: 4px 0; font-size:12px;" id="mapWaktu">-</div>
+                <div class="garis-pembatas"></div>
+                <div style="font-weight: bold; padding: 4px 0; font-size:12px;" id="mapKeperluan">-</div>
+                <div class="garis-pembatas"></div>
             </div>
             
             <div class="qr-wrapper" id="qrContainerMap" style="margin-top: 10px;"></div>
@@ -242,6 +261,7 @@
         </div>
     </div>
 
+    <!-- MODAL AKSI LIVE -->
     <div class="modal fade" id="modalAksiLive" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content border-0 shadow-lg">
@@ -260,6 +280,7 @@
         </div>
     </div>
 
+    <!-- MODAL DETAIL & EDIT TAMU -->
     <div class="modal fade" id="modalDetailTamu" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg">
@@ -302,6 +323,7 @@
         </div>
     </div>
 
+    <!-- MODAL GRAFIK LAPORAN -->
     <div class="modal fade" id="modalGrafikLaporan" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg">
@@ -347,9 +369,9 @@
         let timeoutIdleAdmin;
         let throttleAdmin;
 
-        // --- MANAJEMEN AUDIO (MURNI TTS INDONESIA - TANPA DINGDONG) ---
         let suaraAktif = true; 
         let suaraIndonesia = null;
+        const belAntrian = new Audio('https://actions.google.com/sounds/v1/alarms/ding_dong.ogg');
         
         function muatDaftarSuara() {
             const voices = window.speechSynthesis.getVoices();
@@ -470,7 +492,6 @@
             });
         }
 
-        // SATU-SATUNYA LISTENER PENGATURAN GLOBAL (ANTI-BENTROK)
         onValue(ref(db, 'sistem/pengaturan'), (snapshot) => {
             const config = snapshot.val() || {}; 
             passwordAdminAktif = config.password_admin || "Posk02026!";
@@ -489,7 +510,6 @@
             btnBuka.className = statusBukaSekarang ? "btn btn-success btn-sm fw-bold" : "btn btn-danger btn-sm fw-bold";
         });
 
-        // SAKELAR KONTROL SUARA UTAMA
         window.toggleSuaraSistem = function() {
             const isChecked = document.getElementById('toggleSuara').checked;
             suaraAktif = isChecked; 
@@ -497,10 +517,14 @@
             set(ref(db, 'sistem/pengaturan/suara_aktif'), isChecked);
             
             if (isChecked) {
-                const s = new SpeechSynthesisUtterance("Sistem suara resepsionis telah aktif");
-                s.lang = 'id-ID'; 
-                if (suaraIndonesia) s.voice = suaraIndonesia; 
-                window.speechSynthesis.speak(s);
+                belAntrian.currentTime = 0; 
+                belAntrian.play().catch(e => console.log('Bel ditahan browser:', e));
+                setTimeout(() => {
+                    const s = new SpeechSynthesisUtterance("Sistem suara resepsionis telah aktif");
+                    s.lang = 'id-ID'; 
+                    if (suaraIndonesia) s.voice = suaraIndonesia; 
+                    window.speechSynthesis.speak(s);
+                }, 1500); 
             } else {
                 window.speechSynthesis.cancel(); 
             }
@@ -625,6 +649,7 @@
                 if(t.status === 2) badge = `<span class="badge bg-primary">Diproses</span>`;
                 if(t.status === 3) badge = `<span class="badge bg-success">Selesai</span>`;
 
+                // PERBAIKAN TOMBOL CETAK ARSIP: Penambahan 'window.' agar bisa diklik
                 bodyTabel.innerHTML += `
                     <tr class="baris-tamu" onclick="bukaModalDetailTamu('${id}')">
                         <td class="fw-bold fs-5 text-center">${String(id).padStart(3, '0')}</td>
@@ -637,8 +662,8 @@
                         <td class="text-center">${badge}</td>
                         <td class="text-center">
                             <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-outline-dark" onclick="event.stopPropagation(); cetakUlangStrukKios('${id}')" title="Cetak Struk Antrian (Kios)"><i class="fa-solid fa-receipt"></i> Kios</button>
-                                <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); cetakUlangStrukMap('${id}')" title="Cetak Struk Map (Admin)"><i class="fa-solid fa-file-invoice"></i> Admin</button>
+                                <button class="btn btn-sm btn-outline-dark" onclick="event.stopPropagation(); window.cetakUlangStrukKios('${id}')" title="Cetak Struk Antrian (Kios)"><i class="fa-solid fa-receipt"></i> Kios</button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation(); window.cetakUlangStrukMap('${id}')" title="Cetak Struk Map (Admin)"><i class="fa-solid fa-file-invoice"></i> Admin</button>
                             </div>
                         </td>
                     </tr>`;
@@ -656,31 +681,27 @@
             }
         }
 
-        // LISTENER PANGGILAN LIVE DARI SERVER
         let isFirstLoadPanggilan = true;
         onValue(ref(db, 'sistem/panggilan_sekarang'), (snapshot) => {
             if (isFirstLoadPanggilan) { isFirstLoadPanggilan = false; return; }
 
-            if (snapshot.exists() && suaraAktif) {
+            if (snapshot.exists()) {
                 const data = snapshot.val();
-                if (Date.now() - data.waktu < 15000) {
-                    // PANGGIL MURNI SUARA TTS TANPA EMBEL-EMBEL DINGDONG YANG REWELD
-                    const pesan = new SpeechSynthesisUtterance(`Nomor antrian... ${data.nomor}... silakan menuju meja pelayanan.`);
-                    pesan.lang = 'id-ID';
-                    if (suaraIndonesia) pesan.voice = suaraIndonesia;
-                    pesan.rate = 0.82; 
-                    window.speechSynthesis.speak(pesan);
+                
+                if (suaraAktif && (Date.now() - data.waktu < 15000)) {
+                    belAntrian.currentTime = 0; 
+                    belAntrian.play().catch(err => console.log('Gagal play bel:', err));
+                    
+                    setTimeout(() => {
+                        const pesan = new SpeechSynthesisUtterance(`Nomor antrian... ${data.nomor}... silakan menuju meja pelayanan.`);
+                        pesan.lang = 'id-ID';
+                        if (suaraIndonesia) pesan.voice = suaraIndonesia;
+                        pesan.rate = 0.85; 
+                        window.speechSynthesis.speak(pesan);
+                    }, 1500); 
                 }
             }
         });
-
-        // EKSPORE MODUL KE WINDOWS SCOPE (AGAR ONCLICK DI HTML DIJAMIN JALAN)
-        window.bukaModalAksiLive = function(id) {
-            targetIdAksi = id; 
-            document.getElementById('liveNoTarget').innerText = String(id).padStart(3, '0');
-            const targetModal = document.getElementById('modalAksiLive');
-            bootstrap.Modal.getOrCreateInstance(targetModal).show();
-        };
 
         window.aksiPanggilLive = function() {
             update(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`), { status: 1 });
@@ -825,9 +846,115 @@
         } else {
             document.getElementById('layarLogin').style.display = 'flex';
         }
+        
+        window.simpanPengaturanMaster = function() {
+            const p = document.getElementById('settingPassword').value;
+            const prKios = document.getElementById('settingPrinterKios').value;
+            const prAdmin = document.getElementById('settingPrinterAdmin').value;
+            if(!p) return alert("Password tidak boleh kosong!");
+            update(ref(db, 'sistem/pengaturan'), { password_admin: p, printer_kios: prKios, printer_admin: prAdmin }).then(() => Swal.fire('Tersimpan', 'Pengaturan Berhasil Disimpan!', 'success'));
+        };
 
-        window.toggleStatusBuka = () => set(ref(db, 'sistem/pengaturan/status_buka'), !statusBukaSekarang);
-        window.getJamMenitDetik = () => { const d = new Date(); return String(d.getHours()).padStart(2,'0') + ":" + String(d.getMinutes()).padStart(2,'0') + ":" + String(d.getSeconds()).padStart(2,'0'); };
+        window.konfirmasiResetTamu = function() {
+            Swal.fire({
+                title: 'HAPUS SEMUA DATA TAMU?',
+                html: "Tindakan ini akan <b>MENGHAPUS PERMANEN</b> seluruh data pendaftar hari ini.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Bersihkan Sistem!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Keamanan Lanjutan',
+                        text: 'Silakan masukkan Password Admin untuk melanjutkan.',
+                        input: 'password',
+                        showCancelButton: true,
+                        preConfirm: (passInput) => {
+                            if(passInput !== passwordAdminAktif) { Swal.showValidationMessage('Password SALAH!'); return false; }
+                        }
+                    }).then((passResult) => {
+                        if (passResult.isConfirmed) {
+                            const tgl = getTglSistem();
+                            const updates = {};
+                            updates[`data_tamu/${tgl}`] = null;
+                            updates[`sistem/antrian_global/${tgl}`] = null;
+                            update(ref(db), updates).then(() => Swal.fire('Berhasil Direset!', 'Sistem kembali kosong.', 'success'));
+                        }
+                    });
+                }
+            });
+        };
+
+        window.cetakUlangStrukKios = function(id) {
+            const t = dataTamuHariIni[id]; if(!t) return;
+            const strBarcode = `RSP-${String(id).padStart(3,'0')}-${t.kode_unik}`;
+            const parts = t.jam_datang.split(':');
+            document.getElementById('waktuStrukAdmin').innerText = `${getTglSistem().split('-').reverse().join('/')} - ${parts[0]}:${parts[1]}`;
+            
+            const noAntrian = document.getElementById('noAntrianStrukAdmin');
+            noAntrian.innerText = String(id).padStart(3, '0');
+            
+            const ukKios = document.getElementById('settingPrinterKios').value;
+            const card = document.getElementById('cardCetakAdmin');
+            
+            if(ukKios === "58") { 
+                card.style.width = "48mm"; card.style.fontSize = "10px"; noAntrian.style.fontSize = "72px"; 
+            } else { 
+                card.style.width = "72mm"; card.style.fontSize = "12px"; noAntrian.style.fontSize = "96px"; 
+            }
+
+            const qrContainer = document.getElementById('qrContainer1');
+            qrContainer.innerHTML = '';
+            const qrSize = ukKios === "58" ? 90 : 130;
+            new QRCode(qrContainer, { text: strBarcode, width: qrSize, height: qrSize });
+
+            document.getElementById('areaCetakStrukAdmin').style.display = 'block';
+            setTimeout(() => { window.print(); document.getElementById('areaCetakStrukAdmin').style.display = 'none'; }, 500);
+        };
+
+        window.cetakUlangStrukMap = function(id, jamProsesManual = null) {
+            const t = dataTamuHariIni[id]; if(!t) return;
+            const jp = jamProsesManual ? jamProsesManual : (t.jam_proses === "-" ? window.getJamMenitDetik() : t.jam_proses);
+            
+            const noMap = document.getElementById('mapNoAntrian');
+            noMap.innerText = String(id).padStart(3, '0');
+            document.getElementById('mapNama').innerText = t.nama;
+            document.getElementById('mapKeperluan').innerText = t.keperluan;
+            document.getElementById('mapWaktu').innerText = `${getTglSistem().split('-').reverse().join('/')} ${jp}`;
+            
+            const ukAdmin = document.getElementById('settingPrinterAdmin').value;
+            const card = document.getElementById('cardCetakMapAdmin');
+            const infoMap = document.getElementById('infoMapWrapper');
+
+            if(ukAdmin === "58") { 
+                card.style.width = "48mm"; infoMap.style.fontSize = "12px"; noMap.style.fontSize = "72px"; 
+            } else { 
+                card.style.width = "72mm"; infoMap.style.fontSize = "14px"; noMap.style.fontSize = "96px"; 
+            }
+
+            const strBarcode = `RSP-${String(id).padStart(3,'0')}-${t.kode_unik}`;
+            const qrContainer = document.getElementById('qrContainerMap');
+            qrContainer.innerHTML = '';
+            const qrSize = ukAdmin === "58" ? 90 : 130;
+            new QRCode(qrContainer, { text: strBarcode, width: qrSize, height: qrSize });
+
+            document.getElementById('areaCetakMapAdmin').style.display = 'block';
+            setTimeout(() => { window.print(); document.getElementById('areaCetakMapAdmin').style.display = 'none'; }, 500);
+        };
+
+        function formatDurasi(totalMenit) {
+            if (totalMenit <= 0) return "0 Menit";
+            const jam = Math.floor(totalMenit / 60); const menit = totalMenit % 60;
+            if (jam > 0 && menit > 0) return `${jam} Jam ${menit} Menit`;
+            if (jam > 0) return `${jam} Jam`; return `${menit} Menit`;
+        }
+
+        function parseMins(timeStr) {
+            if(!timeStr || timeStr === "-") return 0;
+            const p = timeStr.split(':'); return (parseInt(p[0])*60) + parseInt(p[1]) + (parseInt(p[2])/60);
+        }
 
         window.downloadExcelHariIni = function() {
             if(Object.keys(dataTamuHariIni).length === 0) return Swal.fire('Kosong', 'Tidak ada data tamu harian.', 'info');
