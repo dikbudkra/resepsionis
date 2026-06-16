@@ -1,0 +1,101 @@
+/* Style Umum Aplikasi Resepsionis */
+body {
+    background-color: #f4f7f6;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+/* Kios Tablet Layout */
+.kios-container {
+    max-width: 600px;
+    margin: 40px auto;
+    background: #ffffff;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+.kios-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #0d6efd;
+    text-align: center;
+    margin-bottom: 5px;
+}
+
+.kios-subtitle {
+    font-size: 14px;
+    color: #6c757d;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+/* Print Layout Optimization */
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #areaStruk, #areaStruk * {
+        visibility: visible;
+    }
+    #areaStruk {
+        position: absolute;
+        left: 0;
+        top: 0;
+        margin: 0;
+        padding: 5mm;
+        box-sizing: border-box;
+    }
+    @page {
+        margin: 0;
+    }
+}
+
+.struk-card {
+    background: white;
+    border: 1px dashed #000;
+    padding: 15px;
+    text-align: center;
+    color: #000;
+}
+
+/* Admin Grid System */
+.kotak-antrian {
+    width: 90px;
+    height: 90px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 800;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.03);
+}
+
+.kotak-antrian:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+}
+
+.kotak-antrian .sub-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-top: 4px;
+}
+
+/* Status Colors for Live Queue */
+.status-0 { border: 2px solid #6c757d; background: #f8f9fa; color: #495057; } /* Antri */
+.status-1 { border: 2px solid #ffc107; background: #fff9e6; color: #b58100; animation: flash 1.5s infinite; } /* Dipanggil */
+.status-2 { border: 2px solid #0d6efd; background: #e7f1ff; color: #0d6efd; } /* Diproses */
+.status-3 { border: 2px solid #198754; background: #e8f5e9; color: #198754; } /* Selesai */
+
+@keyframes flash {
+    0% { opacity: 1; }
+    50% { opacity: 0.6; }
+    100% { opacity: 1; }
+}
