@@ -23,7 +23,7 @@
         .qr-wrapper { display: flex; justify-content: center; align-items: center; width: 100%; margin: 15px 0; }
         .qr-wrapper img, .qr-wrapper canvas { margin: 0 auto; display: block; }
 
-        /* PERBAIKAN DESAIN CETAKAN KIOS THERMAL */
+        /* DESAIN CETAKAN KIOS THERMAL */
         @media print {
             @page { size: portrait; margin: 0; }
             body * { visibility: hidden; }
@@ -35,12 +35,12 @@
                 padding: 10px 5px; 
                 text-align: center; 
                 color: #000; 
-                border: none; /* Kotak luar putus-putus dihilangkan */
+                border: none; 
                 font-family: Arial, sans-serif;
             }
             .struk-card * { 
                 line-height: 1.5; 
-                letter-spacing: 0.5px; /* Mencegah huruf saling nempel */
+                letter-spacing: 0.5px; 
             }
             .struk-card h4 { letter-spacing: 1px; }
             .struk-card h1 { letter-spacing: 3px; }
@@ -101,7 +101,6 @@
         </form>
     </div>
 
-    <!-- AREA CETAK STRUK DI KIOS -->
     <div id="areaStruk">
         <div class="struk-card" id="cardCetak">
             <h4 class="fw-bold m-0" style="font-size:16px;">DISDIKBUD</h4>
@@ -137,8 +136,7 @@
         let ukuranPrinter = "80";
         let passwordAdminAktif = "Posk02026!"; 
         
-        const BATAS_WAKTU_IDLE = 4 * 60 * 60 * 1000; 
-        let timeoutIdle;
+        const BATAS_WAKTU_IDLE = 4 * 60 * 60 * 1000; // 4 Jam dalam milidetik
         let throttleTimer;
 
         function getTglSistem() {
@@ -155,10 +153,43 @@
             }
         };
 
+        // CEK JADWAL OTOMATIS (SAMA SEPERTI ADMIN)
+        function cekJadwalOtomatisKios() {
+            const now = new Date(); const d = now.getDay();
+            const jamMenit = String(now.getHours()).padStart(2, '0') + ":" + String(now.getMinutes()).padStart(2, '0');
+            const detik = now.getSeconds();
+
+            if (detik < 25) { 
+                if (d >= 1 && d <= 5 && jamMenit === "07:30") {
+                    set(ref(db, 'sistem/pengaturan/status_buka'), true);
+                } else if (d >= 1 && d <= 4 && jamMenit === "16:00") {
+                    set(ref(db, 'sistem/pengaturan/status_buka'), false);
+                } else if (d === 5 && jamMenit === "11:30") {
+                    set(ref(db, 'sistem/pengaturan/status_buka'), false);
+                } else if ((d === 6 || d === 0) && jamMenit === "00:00") {
+                    set(ref(db, 'sistem/pengaturan/status_buka'), false);
+                }
+            }
+        }
+        setInterval(cekJadwalOtomatisKios, 20000);
+
+        let cekBootPertama = true;
         onValue(ref(db, 'sistem/pengaturan'), (snapshot) => {
             if(snapshot.exists()) {
                 const conf = snapshot.val();
-                const statusBuka = conf.status_buka !== false;
+                let statusBuka = conf.status_buka !== false;
+                
+                // SISTEM SAPU BERSIH SISA KEMARIN SAAT BOOTING DINI HARI
+                if(cekBootPertama) {
+                    cekBootPertama = false;
+                    const now = new Date();
+                    const waktuMenit = now.getHours() * 60 + now.getMinutes();
+                    // Jika saat baru buka sebelum jam 07:30 pagi, dan status BUKA, paksa tutup!
+                    if (waktuMenit < (7 * 60 + 30) && statusBuka === true) {
+                        set(ref(db, 'sistem/pengaturan/status_buka'), false);
+                        return; // Berhenti sebentar, biar Firebase refresh ulang dengan status TUTUP
+                    }
+                }
                 
                 passwordAdminAktif = conf.password_admin || "Posk02026!"; 
                 ukuranPrinter = conf.printer_kios || "80";
@@ -181,17 +212,24 @@
             localStorage.removeItem('sesiKiosResepsionis');
         }
 
-        function resetWaktuIdle() {
-            clearTimeout(timeoutIdle);
+        // SISTEM IDLE BARU: MENGANDALKAN WAKTU LOKAL (TAHAN MATI LAMPU/TIDUR)
+        function periksaIdleKios() {
             if(localStorage.getItem('sesiKiosResepsionis') === 'aktif') {
-                timeoutIdle = setTimeout(kunciKiosOtomatis, BATAS_WAKTU_IDLE);
+                let aktivitasTerakhir = localStorage.getItem('lastActivityKios');
+                if(!aktivitasTerakhir) aktivitasTerakhir = Date.now();
+                if(Date.now() - parseInt(aktivitasTerakhir) > BATAS_WAKTU_IDLE) {
+                    kunciKiosOtomatis();
+                }
             }
         }
+        setInterval(periksaIdleKios, 30000); // Kios ngecek umur sesinya setiap 30 detik
 
         function pelacakAktivitasKios() {
             if (!throttleTimer) {
                 throttleTimer = setTimeout(() => {
-                    resetWaktuIdle();
+                    if(localStorage.getItem('sesiKiosResepsionis') === 'aktif') {
+                        localStorage.setItem('lastActivityKios', Date.now());
+                    }
                     throttleTimer = null;
                 }, 1000);
             }
@@ -211,9 +249,9 @@
             setTimeout(() => {
                 if(p === passwordAdminAktif) {
                     localStorage.setItem('sesiKiosResepsionis', 'aktif');
+                    localStorage.setItem('lastActivityKios', Date.now());
                     document.getElementById('layarLoginKios').style.display = 'none';
                     document.getElementById('inputPasswordKios').value = ""; 
-                    resetWaktuIdle();
                 } else {
                     spin.style.display = 'none'; btn.style.display = 'block';
                     alert("Password Salah! Silakan coba lagi.");
@@ -229,8 +267,10 @@
         });
 
         if(localStorage.getItem('sesiKiosResepsionis') === 'aktif') {
-            document.getElementById('layarLoginKios').style.display = 'none';
-            resetWaktuIdle();
+            periksaIdleKios(); // Lakukan pengecekan sekali saat baru diload
+            if(localStorage.getItem('sesiKiosResepsionis') === 'aktif') {
+                document.getElementById('layarLoginKios').style.display = 'none';
+            }
         } else {
             document.getElementById('layarLoginKios').style.display = 'flex';
         }
