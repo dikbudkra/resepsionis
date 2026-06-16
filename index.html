@@ -31,15 +31,14 @@
         .nav-tabs .nav-link { color: #495057; font-weight: 600; border: none; padding: 15px 20px; }
         .nav-tabs .nav-link.active { border-bottom: 3px solid #0d6efd; color: #0d6efd; background: transparent; }
         
-        .tab-content { padding: 20px; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
-        .tab-pane { height: 100%; overflow-y: auto; padding-right: 5px; }
-        .tab-pane.active { display: flex !important; flex-direction: column; }
+        /* PERBAIKAN STABILITAS TINGGI TABEL & KOTAK LIVE */
+        .tab-content { padding: 20px; flex-grow: 1; overflow-y: auto; }
         
         .kotak-antrian { position: relative; width: 110px; height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 48px; font-weight: 900; border-radius: 12px; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.03); }
         .kotak-antrian:hover { transform: scale(1.05); z-index: 50; }
         .kotak-antrian .sub-label { font-size: 12px; font-weight: 700; text-transform: uppercase; margin-top: 4px; }
         
-        /* TOOLTIP CERDAS GLOBAL */
+        /* TOOLTIP CERDAS GLOBAL (ANTI KEDIP) */
         #globalTooltip { position: fixed; display: none; width: max-content; max-width: 280px; text-align: left; border-radius: 8px; z-index: 999999; box-shadow: 0 6px 15px rgba(0,0,0,0.15); opacity: 0; transition: opacity 0.15s ease; pointer-events: none; }
         #globalTooltipText { padding: 10px 14px; font-size: 13px; line-height: 1.4; word-wrap: break-word; white-space: normal; }
         #globalTooltipArrow { position: absolute; bottom: 100%; margin-left: -6px; border-width: 0 6px 6px 6px; border-style: solid; transition: left 0.1s; }
@@ -146,7 +145,6 @@
                     <span class="fw-bold">Pendaftaran Kios:</span>
                     <button id="btnStatusPelayanan" class="btn btn-success btn-sm fw-bold" onclick="toggleStatusBuka()">BUKA</button>
                 </div>
-                <!-- SAKELAR SUARA -->
                 <div class="form-check form-switch mt-2">
                     <input class="form-check-input" type="checkbox" id="toggleSuara" checked onchange="toggleSuaraSistem()">
                     <label class="form-check-label fw-bold" for="toggleSuara" id="labelSuara">Suara Panggilan (ON)</label>
@@ -159,15 +157,15 @@
                     <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-laporan">Laporan</button></li>
                     <li class="nav-item"><button class="nav-link fw-bold" data-bs-toggle="pill" data-bs-target="#tab-setting"><i class="fa-solid fa-gear"></i></button></li>
                 </ul>
-                <div class="tab-content p-0" id="pills-tabContent" style="overflow-y:auto; display:block;">
-                    <div class="tab-pane fade show active" id="tab-rekap" style="display:block!important;">
+                <div class="tab-content p-0" id="pills-tabContent">
+                    <div class="tab-pane fade show active" id="tab-rekap">
                         <div class="alert alert-info p-2 mb-3 text-center fw-bold text-uppercase">Statistik Hari Ini</div>
                         <div class="d-flex justify-content-between border-bottom pb-2 mb-2"><span>Total Tamu:</span> <strong class="fs-5" id="rekapTotal">0</strong></div>
                         <div class="d-flex justify-content-between border-bottom pb-2 mb-2"><span>Selesai:</span> <strong class="text-success fs-5" id="rekapSelesai">0</strong></div>
                         <div class="d-flex justify-content-between mb-4"><span>Belum Diproses:</span> <strong class="text-danger fs-5" id="rekapSisa">0</strong></div>
                         <button class="btn btn-success w-100 fw-bold" onclick="downloadExcelHariIni()"><i class="fa-solid fa-file-excel"></i> Download Excel Harian</button>
                     </div>
-                    <div class="tab-pane fade" id="tab-laporan" style="display:none;">
+                    <div class="tab-pane fade" id="tab-laporan">
                         <p class="text-muted small mb-2">Periode laporan SLA pelayanan:</p>
                         <div class="row g-2 mb-2">
                             <div class="col"><input type="date" class="form-control form-control-sm" id="tglMulai"></div>
@@ -177,7 +175,7 @@
                         <hr>
                         <button class="btn btn-outline-primary btn-sm w-100 fw-bold" onclick="muatLaporanRentang()"><i class="fa-solid fa-chart-pie"></i> Lihat Grafik Statistik</button>
                     </div>
-                    <div class="tab-pane fade" id="tab-setting" style="display:none;">
+                    <div class="tab-pane fade" id="tab-setting">
                         <label class="fw-bold small mb-1">Pengaturan Password Sistem</label>
                         <div class="position-relative mb-3">
                             <input type="password" id="settingPassword" class="form-control text-center fw-bold" value="Posk02026!">
@@ -213,7 +211,7 @@
             <div class="tab-content" id="myTabContent">
                 <div class="tab-pane fade show active" id="live-panel">
                     <h5 class="fw-bold mb-3 text-secondary">Monitor Ruang Tunggu <span class="badge bg-light text-dark border ms-2">Arahkan kursor untuk melihat info tamu</span></h5>
-                    <div id="gridLiveAntrian" class="d-flex gap-3 flex-wrap align-content-start" style="min-height: min-content;"></div>
+                    <div id="gridLiveAntrian" class="d-flex gap-3 flex-wrap align-content-start"></div>
                 </div>
                 
                 <div class="tab-pane fade" id="arsip-panel">
@@ -230,7 +228,7 @@
                         </div>
                     </div>
                     
-                    <div class="table-responsive" style="flex-grow: 1;">
+                    <div class="table-responsive">
                         <table class="table table-hover align-middle">
                             <thead class="table-light">
                                 <tr><th>No</th><th>Nama</th><th>Alamat / Instansi</th><th>Keperluan</th><th class="text-center">WhatsApp</th><th class="text-center">Status</th><th class="text-center" style="min-width: 150px;">Cetak Arsip</th></tr>
@@ -244,22 +242,6 @@
         </div>
     </div>
 
-    <!-- MODAL GRAFIK LAPORAN -->
-    <div class="modal fade" id="modalGrafikLaporan" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-light">
-                    <h5 class="modal-title fw-bold text-primary"><i class="fa-solid fa-chart-bar"></i> Statistik Pelayanan Tamu</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body p-4 text-center">
-                    <canvas id="chartLaporan" style="max-height: 400px; width: 100%; background: #ffffff;"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL AKSI LIVE -->
     <div class="modal fade" id="modalAksiLive" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-sm">
             <div class="modal-content border-0 shadow-lg">
@@ -278,7 +260,6 @@
         </div>
     </div>
 
-    <!-- MODAL DETAIL & EDIT TAMU -->
     <div class="modal fade" id="modalDetailTamu" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg">
@@ -321,28 +302,21 @@
         </div>
     </div>
 
+    <div class="modal fade" id="modalGrafikLaporan" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold text-primary"><i class="fa-solid fa-chart-bar"></i> Statistik Pelayanan Tamu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <canvas id="chartLaporan" style="max-height: 400px; width: 100%; background: #ffffff;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const tabs = document.querySelectorAll('button[data-bs-toggle="pill"], button[data-bs-toggle="tab"]');
-            tabs.forEach(tab => {
-                tab.addEventListener('shown.bs.tab', (e) => {
-                    const targetId = e.target.getAttribute('data-bs-target');
-                    const targetPane = document.querySelector(targetId);
-                    if(targetPane) {
-                        targetPane.style.display = 'flex';
-                        if (targetId === '#live-panel' || targetId === '#arsip-panel') {
-                            targetPane.style.flexDirection = 'column';
-                        }
-                    }
-                    const parentContent = targetPane.closest('.tab-content');
-                    parentContent.querySelectorAll('.tab-pane').forEach(pane => {
-                        if(pane !== targetPane) pane.style.display = 'none';
-                    });
-                });
-            });
-        });
-    </script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
         import { getDatabase, ref, onValue, set, update, get } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js";
@@ -373,10 +347,9 @@
         let timeoutIdleAdmin;
         let throttleAdmin;
 
-        // --- SISTEM AUDIO YANG SUDAH DIBERSIHKAN ---
+        // --- MANAJEMEN AUDIO (MURNI TTS INDONESIA - TANPA DINGDONG) ---
         let suaraAktif = true; 
         let suaraIndonesia = null;
-        const belAntrian = new Audio('https://actions.google.com/sounds/v1/alarms/ding_dong.ogg');
         
         function muatDaftarSuara() {
             const voices = window.speechSynthesis.getVoices();
@@ -497,7 +470,7 @@
             });
         }
 
-        // SATU-SATUNYA LISTENER PENGATURAN (TIDAK GANDA LAGI)
+        // SATU-SATUNYA LISTENER PENGATURAN GLOBAL (ANTI-BENTROK)
         onValue(ref(db, 'sistem/pengaturan'), (snapshot) => {
             const config = snapshot.val() || {}; 
             passwordAdminAktif = config.password_admin || "Posk02026!";
@@ -516,7 +489,7 @@
             btnBuka.className = statusBukaSekarang ? "btn btn-success btn-sm fw-bold" : "btn btn-danger btn-sm fw-bold";
         });
 
-        // FUNGSI TOGGLE SUARA (UPDATE LABEL & DATABASE SECARA INSTAN)
+        // SAKELAR KONTROL SUARA UTAMA
         window.toggleSuaraSistem = function() {
             const isChecked = document.getElementById('toggleSuara').checked;
             suaraAktif = isChecked; 
@@ -524,16 +497,12 @@
             set(ref(db, 'sistem/pengaturan/suara_aktif'), isChecked);
             
             if (isChecked) {
-                belAntrian.currentTime = 0; // Pastikan kaset di-rewind
-                belAntrian.play().catch(e => console.log('Bel ditahan browser:', e));
-                setTimeout(() => {
-                    const s = new SpeechSynthesisUtterance("Sistem suara resepsionis telah aktif");
-                    s.lang = 'id-ID'; 
-                    if (suaraIndonesia) s.voice = suaraIndonesia; 
-                    window.speechSynthesis.speak(s);
-                }, 1500); 
+                const s = new SpeechSynthesisUtterance("Sistem suara resepsionis telah aktif");
+                s.lang = 'id-ID'; 
+                if (suaraIndonesia) s.voice = suaraIndonesia; 
+                window.speechSynthesis.speak(s);
             } else {
-                window.speechSynthesis.cancel(); // Bungkam seketika
+                window.speechSynthesis.cancel(); 
             }
         };
 
@@ -611,7 +580,7 @@
 
                     gridLive.innerHTML += `
                         <div class="kotak-antrian status-${t.status}" 
-                             onclick="bukaModalAksiLive('${id}')"
+                             onclick="window.bukaModalAksiLive('${id}')"
                              onmouseenter="tampilkanTooltip(this)"
                              onmouseleave="sembunyikanTooltip()"
                              data-nama="${cleanNama}"
@@ -687,31 +656,31 @@
             }
         }
 
-        // SATU-SATUNYA LISTENER PANGGILAN ANTRIAN
+        // LISTENER PANGGILAN LIVE DARI SERVER
         let isFirstLoadPanggilan = true;
         onValue(ref(db, 'sistem/panggilan_sekarang'), (snapshot) => {
             if (isFirstLoadPanggilan) { isFirstLoadPanggilan = false; return; }
 
-            if (snapshot.exists()) {
+            if (snapshot.exists() && suaraAktif) {
                 const data = snapshot.val();
-                
-                // Murni berjalan jika tombol sakelar ON (suaraAktif === true)
-                if (suaraAktif && (Date.now() - data.waktu < 15000)) {
-                    
-                    belAntrian.currentTime = 0; // REWIND KASET
-                    belAntrian.play().catch(err => console.log('Gagal play bel:', err));
-                    
-                    // Putar suara panggilan (paralel dengan jeda aman agar tidak saling menunggu)
-                    setTimeout(() => {
-                        const pesan = new SpeechSynthesisUtterance(`Nomor antrian... ${data.nomor}... silakan menuju meja pelayanan.`);
-                        pesan.lang = 'id-ID';
-                        if (suaraIndonesia) pesan.voice = suaraIndonesia;
-                        pesan.rate = 0.85; 
-                        window.speechSynthesis.speak(pesan);
-                    }, 1500); 
+                if (Date.now() - data.waktu < 15000) {
+                    // PANGGIL MURNI SUARA TTS TANPA EMBEL-EMBEL DINGDONG YANG REWELD
+                    const pesan = new SpeechSynthesisUtterance(`Nomor antrian... ${data.nomor}... silakan menuju meja pelayanan.`);
+                    pesan.lang = 'id-ID';
+                    if (suaraIndonesia) pesan.voice = suaraIndonesia;
+                    pesan.rate = 0.82; 
+                    window.speechSynthesis.speak(pesan);
                 }
             }
         });
+
+        // EKSPORE MODUL KE WINDOWS SCOPE (AGAR ONCLICK DI HTML DIJAMIN JALAN)
+        window.bukaModalAksiLive = function(id) {
+            targetIdAksi = id; 
+            document.getElementById('liveNoTarget').innerText = String(id).padStart(3, '0');
+            const targetModal = document.getElementById('modalAksiLive');
+            bootstrap.Modal.getOrCreateInstance(targetModal).show();
+        };
 
         window.aksiPanggilLive = function() {
             update(ref(db, `data_tamu/${getTglSistem()}/${targetIdAksi}`), { status: 1 });
@@ -781,6 +750,35 @@
             }
         });
 
+        let currentIdEdit = "";
+        window.bukaModalDetailTamu = function(id) {
+            currentIdEdit = id; const t = dataTamuHariIni[id];
+            document.getElementById('detNo').innerText = String(id).padStart(3, '0');
+            document.getElementById('detNama').innerText = t.nama; document.getElementById('detAlamat').innerText = t.alamat; document.getElementById('detKeperluan').innerText = t.keperluan; document.getElementById('detWA').innerText = t.wa;
+            document.getElementById('detDatang').innerText = t.jam_datang; document.getElementById('detProses').innerText = t.jam_proses; document.getElementById('detSelesai').innerText = t.jam_selesai;
+            document.getElementById('editNama').value = t.nama; document.getElementById('editAlamat').value = t.alamat; document.getElementById('editKeperluan').value = t.keperluan; document.getElementById('editWA').value = t.wa;
+            batalEditTamu(); bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetailTamu')).show();
+        };
+
+        window.masukModeEdit = function() {
+            document.getElementById('modeTeksTamu').style.display = 'none'; document.getElementById('modeEditTamu').style.display = 'block';
+            document.getElementById('btnEditToggle').classList.add('d-none'); document.getElementById('btnSimpanEdit').classList.remove('d-none');
+        };
+
+        window.batalEditTamu = function() {
+            document.getElementById('modeTeksTamu').style.display = 'block'; document.getElementById('modeEditTamu').style.display = 'none';
+            document.getElementById('btnEditToggle').classList.remove('d-none'); document.getElementById('btnSimpanEdit').classList.add('d-none');
+        };
+
+        window.eksekusiSimpanEdit = function() {
+            const n = document.getElementById('editNama').value, a = document.getElementById('editAlamat').value, k = document.getElementById('editKeperluan').value, w = document.getElementById('editWA').value;
+            if(!n || !a || !k || !w) { Swal.fire('Error', 'Semua kolom wajib diisi!', 'error'); return; }
+            update(ref(db, `data_tamu/${getTglSistem()}/${currentIdEdit}`), { nama: n, alamat: a, keperluan: k, wa: w }).then(() => {
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetailTamu')).hide();
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Data Diperbarui', showConfirmButton: false, timer: 2000 });
+            });
+        };
+
         window.eksekusiLogin = function() {
             const pass = document.getElementById('inputPassword').value;
             const btn = document.getElementById('btnLogin'), spinner = document.getElementById('spinnerLogin');
@@ -827,144 +825,9 @@
         } else {
             document.getElementById('layarLogin').style.display = 'flex';
         }
-        
-        window.simpanPengaturanMaster = function() {
-            const p = document.getElementById('settingPassword').value;
-            const prKios = document.getElementById('settingPrinterKios').value;
-            const prAdmin = document.getElementById('settingPrinterAdmin').value;
-            if(!p) return alert("Password tidak boleh kosong!");
-            update(ref(db, 'sistem/pengaturan'), { password_admin: p, printer_kios: prKios, printer_admin: prAdmin }).then(() => Swal.fire('Tersimpan', 'Pengaturan Berhasil Disimpan!', 'success'));
-        };
 
-        window.konfirmasiResetTamu = function() {
-            Swal.fire({
-                title: 'HAPUS SEMUA DATA TAMU?',
-                html: "Tindakan ini akan <b>MENGHAPUS PERMANEN</b> seluruh data pendaftar hari ini.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc3545',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Ya, Bersihkan Sistem!'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Keamanan Lanjutan',
-                        text: 'Silakan masukkan Password Admin untuk melanjutkan.',
-                        input: 'password',
-                        showCancelButton: true,
-                        preConfirm: (passInput) => {
-                            if(passInput !== passwordAdminAktif) { Swal.showValidationMessage('Password SALAH!'); return false; }
-                        }
-                    }).then((passResult) => {
-                        if (passResult.isConfirmed) {
-                            const tgl = getTglSistem();
-                            const updates = {};
-                            updates[`data_tamu/${tgl}`] = null;
-                            updates[`sistem/antrian_global/${tgl}`] = null;
-                            update(ref(db), updates).then(() => Swal.fire('Berhasil Direset!', 'Sistem kembali kosong.', 'success'));
-                        }
-                    });
-                }
-            });
-        };
-
-        window.cetakUlangStrukKios = function(id) {
-            const t = dataTamuHariIni[id]; if(!t) return;
-            const strBarcode = `RSP-${String(id).padStart(3,'0')}-${t.kode_unik}`;
-            const parts = t.jam_datang.split(':');
-            document.getElementById('waktuStrukAdmin').innerText = `${getTglSistem().split('-').reverse().join('/')} - ${parts[0]}:${parts[1]}`;
-            
-            const noAntrian = document.getElementById('noAntrianStrukAdmin');
-            noAntrian.innerText = String(id).padStart(3, '0');
-            
-            const ukKios = document.getElementById('settingPrinterKios').value;
-            const card = document.getElementById('cardCetakAdmin');
-            
-            if(ukKios === "58") { 
-                card.style.width = "48mm"; card.style.fontSize = "10px"; noAntrian.style.fontSize = "72px"; 
-            } else { 
-                card.style.width = "72mm"; card.style.fontSize = "12px"; noAntrian.style.fontSize = "96px"; 
-            }
-
-            const qrContainer = document.getElementById('qrContainer1');
-            qrContainer.innerHTML = '';
-            const qrSize = ukKios === "58" ? 90 : 130;
-            new QRCode(qrContainer, { text: strBarcode, width: qrSize, height: qrSize });
-
-            document.getElementById('areaCetakStrukAdmin').style.display = 'block';
-            setTimeout(() => { window.print(); document.getElementById('areaCetakStrukAdmin').style.display = 'none'; }, 500);
-        };
-
-        window.cetakUlangStrukMap = function(id, jamProsesManual = null) {
-            const t = dataTamuHariIni[id]; if(!t) return;
-            const jp = jamProsesManual ? jamProsesManual : (t.jam_proses === "-" ? window.getJamMenitDetik() : t.jam_proses);
-            
-            const noMap = document.getElementById('mapNoAntrian');
-            noMap.innerText = String(id).padStart(3, '0');
-            document.getElementById('mapNama').innerText = t.nama;
-            document.getElementById('mapKeperluan').innerText = t.keperluan;
-            document.getElementById('mapWaktu').innerText = `${getTglSistem().split('-').reverse().join('/')} ${jp}`;
-            
-            const ukAdmin = document.getElementById('settingPrinterAdmin').value;
-            const card = document.getElementById('cardCetakMapAdmin');
-            const infoMap = document.getElementById('infoMapWrapper');
-
-            if(ukAdmin === "58") { 
-                card.style.width = "48mm"; infoMap.style.fontSize = "12px"; noMap.style.fontSize = "72px"; 
-            } else { 
-                card.style.width = "72mm"; infoMap.style.fontSize = "14px"; noMap.style.fontSize = "96px"; 
-            }
-
-            const strBarcode = `RSP-${String(id).padStart(3,'0')}-${t.kode_unik}`;
-            const qrContainer = document.getElementById('qrContainerMap');
-            qrContainer.innerHTML = '';
-            const qrSize = ukAdmin === "58" ? 90 : 130;
-            new QRCode(qrContainer, { text: strBarcode, width: qrSize, height: qrSize });
-
-            document.getElementById('areaCetakMapAdmin').style.display = 'block';
-            setTimeout(() => { window.print(); document.getElementById('areaCetakMapAdmin').style.display = 'none'; }, 500);
-        };
-
-        let currentIdEdit = "";
-        window.bukaModalDetailTamu = function(id) {
-            currentIdEdit = id; const t = dataTamuHariIni[id];
-            document.getElementById('detNo').innerText = String(id).padStart(3, '0');
-            document.getElementById('detNama').innerText = t.nama; document.getElementById('detAlamat').innerText = t.alamat; document.getElementById('detKeperluan').innerText = t.keperluan; document.getElementById('detWA').innerText = t.wa;
-            document.getElementById('detDatang').innerText = t.jam_datang; document.getElementById('detProses').innerText = t.jam_proses; document.getElementById('detSelesai').innerText = t.jam_selesai;
-            document.getElementById('editNama').value = t.nama; document.getElementById('editAlamat').value = t.alamat; document.getElementById('editKeperluan').value = t.keperluan; document.getElementById('editWA').value = t.wa;
-            batalEditTamu(); bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetailTamu')).show();
-        };
-
-        window.masukModeEdit = function() {
-            document.getElementById('modeTeksTamu').style.display = 'none'; document.getElementById('modeEditTamu').style.display = 'block';
-            document.getElementById('btnEditToggle').classList.add('d-none'); document.getElementById('btnSimpanEdit').classList.remove('d-none');
-        };
-
-        window.batalEditTamu = function() {
-            document.getElementById('modeTeksTamu').style.display = 'block'; document.getElementById('modeEditTamu').style.display = 'none';
-            document.getElementById('btnEditToggle').classList.remove('d-none'); document.getElementById('btnSimpanEdit').classList.add('d-none');
-        };
-
-        window.eksekusiSimpanEdit = function() {
-            const n = document.getElementById('editNama').value, a = document.getElementById('editAlamat').value, k = document.getElementById('editKeperluan').value, w = document.getElementById('editWA').value;
-            if(!n || !a || !k || !w) { Swal.fire('Error', 'Semua kolom wajib diisi!', 'error'); return; }
-            update(ref(db, `data_tamu/${getTglSistem()}/${currentIdEdit}`), { nama: n, alamat: a, keperluan: k, wa: w }).then(() => {
-                bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetailTamu')).hide();
-                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Data Diperbarui', showConfirmButton: false, timer: 2000 });
-            });
-        };
-
-        function formatDurasi(totalMenit) {
-            if (totalMenit <= 0) return "0 Menit";
-            const jam = Math.floor(totalMenit / 60); const menit = totalMenit % 60;
-            if (jam > 0 && menit > 0) return `${jam} Jam ${menit} Menit`;
-            if (jam > 0) return `${jam} Jam`; return `${menit} Menit`;
-        }
-
-        function parseMins(timeStr) {
-            if(!timeStr || timeStr === "-") return 0;
-            const p = timeStr.split(':'); return (parseInt(p[0])*60) + parseInt(p[1]) + (parseInt(p[2])/60);
-        }
+        window.toggleStatusBuka = () => set(ref(db, 'sistem/pengaturan/status_buka'), !statusBukaSekarang);
+        window.getJamMenitDetik = () => { const d = new Date(); return String(d.getHours()).padStart(2,'0') + ":" + String(d.getMinutes()).padStart(2,'0') + ":" + String(d.getSeconds()).padStart(2,'0'); };
 
         window.downloadExcelHariIni = function() {
             if(Object.keys(dataTamuHariIni).length === 0) return Swal.fire('Kosong', 'Tidak ada data tamu harian.', 'info');
