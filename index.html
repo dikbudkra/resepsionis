@@ -148,7 +148,7 @@
                     <button id="btnStatusPelayanan" class="btn btn-success btn-sm fw-bold" onclick="toggleStatusBuka()">BUKA</button>
                 </div>
                 <div class="form-check form-switch mt-2">
-                    <input class="form-check-input" type="checkbox" id="toggleSuara" checked onchange="toggleSuaraSistem()">
+                    <input class="form-check-input" type="checkbox" id="toggleSuara" checked>
                     <label class="form-check-label fw-bold" for="toggleSuara" id="labelSuara">Suara Panggilan (ON)</label>
                 </div>
             </div>
@@ -239,6 +239,20 @@
                         </table>
                     </div>
                     <div id="paginationTamu" class="d-flex justify-content-center mt-3 gap-2 pb-2"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalGrafikLaporan" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold text-primary"><i class="fa-solid fa-chart-bar"></i> Statistik Pelayanan Tamu</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <canvas id="chartLaporan" style="max-height: 400px; width: 100%; background: #ffffff;"></canvas>
                 </div>
             </div>
         </div>
@@ -356,6 +370,21 @@
         let timeoutIdleAdmin;
         let throttleAdmin;
 
+        // --- SISTEM AUDIO TANGGUH ---
+        let suaraAktif = false;
+        let suaraIndonesia = null;
+        const belAntrian = new Audio('https://actions.google.com/sounds/v1/alarms/ding_dong.ogg');
+        
+        // Memuat kamus aksen Indonesia sejak awal
+        function muatDaftarSuara() {
+            const voices = window.speechSynthesis.getVoices();
+            suaraIndonesia = voices.find(v => v.lang.includes('id') && v.name.includes('Google')) || voices.find(v => v.lang.includes('id') || v.name.toLowerCase().includes('indonesia'));
+        }
+        muatDaftarSuara();
+        if (window.speechSynthesis.onvoiceschanged !== undefined) {
+            window.speechSynthesis.onvoiceschanged = muatDaftarSuara;
+        }
+
         setInterval(() => {
             const d = new Date();
             const el = document.getElementById('jamLive');
@@ -471,6 +500,12 @@
             passwordAdminAktif = config.password_admin || "Posk02026!";
             statusBukaSekarang = config.status_buka !== false;
             
+            // --- Singkronisasi Suara dari DB (Agar jika di-refresh tetap sesuai pengaturan terakhir) ---
+            suaraAktif = config.suara_aktif !== false;
+            document.getElementById('toggleSuara').checked = suaraAktif;
+            document.getElementById('labelSuara').innerText = suaraAktif ? "Suara Panggilan (ON)" : "Suara Panggilan (OFF)";
+            // ------------------------------------------------------------------------------------------
+
             document.getElementById('settingPassword').value = passwordAdminAktif;
             document.getElementById('settingPrinterKios').value = config.printer_kios || "80";
             document.getElementById('settingPrinterAdmin').value = config.printer_admin || "80";
@@ -478,11 +513,27 @@
             const btnBuka = document.getElementById('btnStatusPelayanan');
             btnBuka.innerText = statusBukaSekarang ? "BUKA" : "TUTUP";
             btnBuka.className = statusBukaSekarang ? "btn btn-success btn-sm fw-bold" : "btn btn-danger btn-sm fw-bold";
-
-            const suaraCheck = document.getElementById('toggleSuara');
-            suaraCheck.checked = config.suara_aktif !== false;
-            document.getElementById('labelSuara').innerText = suaraCheck.checked ? "Suara Panggilan (ON)" : "Suara Panggilan (OFF)";
         });
+
+        // FUNGSI MEMBUKA KUNCI AUDIO (WAJIB DITEKAN ADMIN)
+        window.toggleSuaraSistem = function() {
+            const isChecked = document.getElementById('toggleSuara').checked;
+            set(ref(db, 'sistem/pengaturan/suara_aktif'), isChecked);
+            
+            if (isChecked) {
+                // Mainkan Ting-Nong dan Bicara (Membuka segel peramban)
+                belAntrian.play().catch(e => console.log('Gagal membunyikan bel:', e));
+                
+                setTimeout(() => {
+                    const s = new SpeechSynthesisUtterance("Sistem suara resepsionis telah aktif");
+                    s.lang = 'id-ID'; 
+                    if (suaraIndonesia) s.voice = suaraIndonesia; 
+                    window.speechSynthesis.speak(s);
+                }, 1500); // Tunggu bel selesai baru bicara
+            } else {
+                window.speechSynthesis.cancel(); // Matikan suara jika sedang bicara
+            }
+        };
 
         onValue(ref(db, `data_tamu/${getTglSistem()}`), (snapshot) => {
             dataTamuHariIni = snapshot.val() || {}; renderDashboardDanTabel();
@@ -634,10 +685,6 @@
             }
         }
 
-        // --- ENGINE PANGGILAN AUDIO (SUARA BEL & TTS GOOGLE) ---
-        const belAntrian = new Audio('https://actions.google.com/sounds/v1/alarms/ding_dong.ogg');
-        let isFirstLoadPanggilan = true;
-
         window.eksekusiLogin = function() {
             const pass = document.getElementById('inputPassword').value;
             const btn = document.getElementById('btnLogin'), spinner = document.getElementById('spinnerLogin');
@@ -645,22 +692,6 @@
             btn.style.display = 'none'; spinner.style.display = 'block';
             setTimeout(() => {
                 if(pass === passwordAdminAktif) {
-                    
-                    // --- INTEGRASI PANCINGAN AUDIO UNTUK MEMBUKA SEGEL BROWSER ---
-                    belAntrian.volume = 0;
-                    belAntrian.play().then(() => {
-                        belAntrian.pause();
-                        belAntrian.currentTime = 0;
-                        belAntrian.volume = 1; // Kembalikan ke normal
-                    }).catch(e => console.log('Pancingan bel ditahan:', e));
-
-                    try {
-                        const pancinganTTS = new SpeechSynthesisUtterance(' ');
-                        pancinganTTS.volume = 0;
-                        window.speechSynthesis.speak(pancinganTTS);
-                    } catch(e) { console.log('Pancingan TTS ditahan:', e); }
-                    // -------------------------------------------------------------
-
                     localStorage.setItem('sesiResepsionis', 'aktif'); 
                     spinner.style.display = 'none'; btn.style.display = 'block';
                     document.getElementById('layarLogin').style.display = 'none'; 
@@ -700,9 +731,6 @@
         } else {
             document.getElementById('layarLogin').style.display = 'flex';
         }
-
-        window.toggleStatusBuka = () => set(ref(db, 'sistem/pengaturan/status_buka'), !statusBukaSekarang);
-        window.toggleSuaraSistem = () => set(ref(db, 'sistem/pengaturan/suara_aktif'), document.getElementById('toggleSuara').checked);
         
         window.simpanPengaturanMaster = function() {
             const p = document.getElementById('settingPassword').value;
@@ -808,22 +836,26 @@
 
         window.getJamMenitDetik = () => { const d = new Date(); return String(d.getHours()).padStart(2,'0') + ":" + String(d.getMinutes()).padStart(2,'0') + ":" + String(d.getSeconds()).padStart(2,'0'); };
 
+        let isFirstLoadPanggilan = true;
+
         onValue(ref(db, 'sistem/panggilan_sekarang'), (snapshot) => {
             if (isFirstLoadPanggilan) { isFirstLoadPanggilan = false; return; }
 
-            if (snapshot.exists()) {
+            if (snapshot.exists() && suaraAktif) {
                 const data = snapshot.val();
-                const suaraAktif = document.getElementById('toggleSuara').checked;
                 
-                // TOLERANSI DILONGGARKAN MENJADI 15 DETIK (15000ms) AGAR TIDAK LEWAT BATAS WAKTU SINKRONISASI
-                if (Date.now() - data.waktu < 15000 && suaraAktif) {
-                    belAntrian.play().catch(err => console.log('Autoplay ditahan browser', err));
-                    belAntrian.onended = () => {
-                        const pesan = new SpeechSynthesisUtterance(`Nomor antrian. ${data.nomor}. silakan menuju meja pelayanan.`);
+                if (Date.now() - data.waktu < 15000) {
+                    // Panggil Bel Ding-Dong
+                    belAntrian.play().catch(err => console.log('Gagal play bel:', err));
+                    
+                    // Panggil TTS setelah jeda aman (paralel)
+                    setTimeout(() => {
+                        const pesan = new SpeechSynthesisUtterance(`Nomor antrian... ${data.nomor}... silakan menuju meja pelayanan.`);
                         pesan.lang = 'id-ID';
+                        if (suaraIndonesia) pesan.voice = suaraIndonesia;
                         pesan.rate = 0.85; 
                         window.speechSynthesis.speak(pesan);
-                    };
+                    }, 1200); 
                 }
             }
         });
